@@ -133,6 +133,8 @@ placeholder, login/signup forms, OAuth callback handler).
 - A logged-out user hitting `/profile` is redirected to `/auth/login`.
 - A logged-in user can reset their password via email.
 - `profiles` exists and every confirmed sign-up produces a row.
+- Every new sign-up receives a confirmation/welcome email via Lettermint
+  (sender domain `practicaldatajobs.com`).
 - `npm run check` is green and CI runs it on every push/PR.
 
 ---
@@ -144,6 +146,7 @@ and is one or more commits.
 
 ### M1 — Scaffolding + profiles table + landing page port
 ### M2 — Email/password auth
+### M2.D — Sign-up confirmation email via Lettermint (rolls into M2)
 ### M3 — Discord OAuth + password reset + CI
 
 Phases inside each milestone are sized so one phase ≈ one commit. Don't start
@@ -160,6 +163,7 @@ the next phase until the previous one is green and committed.
 | M2.A Sign-up | ✅ Done | Email/password, email confirmation off (dev) |
 | M2.B Sign-in + sign-out | ✅ Done | useActionState forms, auth-button header widget |
 | M2.C Route gate + /app | ✅ Done | proxy.ts gates /app/*, /app placeholder page |
+| M2.D Sign-up confirmation email (Lettermint) | ⬜ To do | practicaldatajobs.com domain; token in `.env.local` as `LETTERMINT_API_TOKEN` |
 | M3.A Discord OAuth | ⬜ Deferred | |
 | M3.B Password reset | ⬜ Deferred | |
 | M3.C Test harness + CI | ⬜ Deferred | |
@@ -255,6 +259,55 @@ Goal: the core auth loop works end-to-end with email/password.
       route in Next 16 + Turbopack.** `npm run check` green.
 
 **M2 exit gate:** full email/password auth loop. Commit.
+
+---
+
+## 4.4 Phase D — Sign-up confirmation email via Lettermint
+
+Goal: the moment a user successfully signs up, they receive a branded
+confirmation/welcome email from `practicaldatajobs.com`. We use Lettermint as
+the transactional mailer (Supabase Auth's built-in confirmation email stays
+OFF — see note below — so we control copy, branding, and sender domain
+ourselves).
+
+**Note on the "email confirmation off (dev)" status (§2a, M2.A):** that line
+refers to Supabase Auth's *own* email-verification flow. It stays off. The
+Lettermint email here is a one-way *notification* ("you signed up, here's
+what's next"), not a token-verified confirmation link. If we later want a real
+verified-link flow, that becomes a separate task (wire Supabase's confirmation
+redirect to a Lettermint-sent magic link) — out of scope here.
+
+**Secrets handling (per §0 conventions — secrets never in committed files):**
+- `.env.local` (gitignored): `LETTERMINT_API_TOKEN=lm_…` — the real token.
+- `.env.example` (committed): documents the var name + a placeholder; never
+  the live token. PLAN.md references the var *name*, never the value.
+
+- [ ] `lib/email/lettermint.ts` — thin server-only wrapper around the Lettermint
+      HTTP API. Reads `LETTERMINT_API_TOKEN` from `process.env` (server-side
+      only; never prefixed `NEXT_PUBLIC_`). Exposes
+      `sendConfirmationEmail({ to, name? })`. Hard-fails loudly on a non-2xx
+      Lettermint response (per convention #3: never swallow an error — a
+      silent email failure would make a broken signup look successful).
+- [ ] Sender: `practicaldatajobs.com` domain (must be configured/verified on
+      the Lettermint side). From-address something like
+      `welcome@practicaldatajobs.com` — confirm the exact address when wiring.
+- [ ] Wire into the `signUp` Server Action (M2.A): after a successful
+      `supabase.auth.signUp` (no error, user row created), call
+      `sendConfirmationEmail({ to: email })`. Decide and document failure
+      mode: recommendation is to *not* block signup on email failure (the
+      user is created), but to log loudly and surface a soft warning. Rationale:
+      email delivery is flakier than DB writes; we don't want a transient
+      Lettermint outage to corrupt the auth state. Revisit if we add retries.
+- [ ] Email body: short, branded, plain-text-friendly. Welcome line + "you can
+      now log in" + link to `/auth/login`. No sensitive tokens in the body.
+- [ ] Update `.env.example` with `LETTERMINT_API_TOKEN=` (empty placeholder)
+      and a comment pointing to this plan section.
+- [ ] **Verify:** sign up with a fresh email; a confirmation email arrives
+      from `practicaldatajobs.com`; signup still succeeds if Lettermint is
+      unreachable (graceful degradation). `npm run check` green.
+
+**M2.D exit gate:** every new signup fires a Lettermint email; failures are
+logged, not silent. Commit.
 
 ---
 
