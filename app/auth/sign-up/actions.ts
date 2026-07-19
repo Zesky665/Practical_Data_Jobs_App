@@ -42,7 +42,19 @@ export async function signUp(
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) {
-    return { error: error.message };
+    // Supabase's AuthRetryableFetchError surfaces a useless "{}" message when
+    // the underlying failure is server-side (e.g. "Error sending confirmation
+    // email" from a misconfigured custom SMTP). The real cause lives in the
+    // response body, which the client discards. Map status 500 to something
+    // actionable so the user isn't staring at "{}".
+    let message = error.message;
+    if (error.status === 500 || !message || message === "{}") {
+      message =
+        "We couldn't complete sign-up. If email confirmation is on, the " +
+        "confirmation email may have failed to send — please try again in a " +
+        "moment, or contact support if it persists.";
+    }
+    return { error: message };
   }
 
   // Session present → confirmation off → user is logged in, send to the app.
