@@ -1,0 +1,3 @@
+-- seed.sql — run after migrations on `supabase db reset`.
+-- Intentionally empty for M1: no seed data needed for auth-only functionality.
+-- Add seed profiles/jobs/etc. in later milestones when the schema exists.
