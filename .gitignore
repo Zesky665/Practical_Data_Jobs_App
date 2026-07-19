@@ -44,3 +44,6 @@ yarn-error.log*
 # Test/coverage
 coverage/
 .nyc_output/
+
+# Vercel CLI
+.vercel
