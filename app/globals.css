@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* shadcn-style neutral tokens (app UI). */
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+  --radius: 0.5rem;
+
+  /*
+   * Brand palette — mirrors tailwind.config.ts colors.brand. Exposed as CSS
+   * variables so inline styles (gradients, opacity overlays) can reference them.
+   * Keep both files in sync when changing a brand color.
+   * (Lifted from Practical_Data_Jobs_Site/src/styles/theme.css.)
+   */
+  --brand-white: #ffffff;
+  --brand-blue-50: #eff6ff;
+  --brand-blue-100: #dbeafe;
+  --brand-blue-500: #3b82f6;
+  --brand-blue-600: #2563eb;
+  --brand-blue-700: #1d4ed8;
+  --brand-cyan-50: #ecfeff;
+  --brand-cyan-100: #cffafe;
+  --brand-cyan-400: #22d3ee;
+  --brand-cyan-500: #06b6d4;
+  --brand-cyan-600: #0891b2;
+  --brand-ink: #0f172a;
+  --brand-ink-soft: #334155;
+  --brand-slate: #64748b;
+  --brand-slate-2: #94a3b8;
+  --brand-muted: #f8fafc;
+  --brand-line: #e2e8f0;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
