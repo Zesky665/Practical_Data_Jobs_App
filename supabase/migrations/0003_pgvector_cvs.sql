@@ -30,17 +30,3 @@ CREATE POLICY "cvs: owner CRUD" ON public.cvs
 -- Grant table access to Supabase roles (not automatic in local dev).
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.cvs TO authenticated, service_role, anon;
 
--- RLS on storage: users can only access files under their own user-id prefix.
--- Note: uploads use the service-role client (lib/supabase/service.ts) which
--- bypasses RLS. This policy exists for future direct user access if needed.
-CREATE POLICY "cvs_storage: owner access"
-ON storage.objects
-FOR ALL
-USING (
-  bucket_id = 'cvs'
-  AND auth.uid()::text = (storage.foldername(name))[1]
-)
-WITH CHECK (
-  bucket_id = 'cvs'
-  AND auth.uid()::text = (storage.foldername(name))[1]
-);

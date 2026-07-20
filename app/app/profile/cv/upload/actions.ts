@@ -114,6 +114,7 @@ export async function uploadCV(
         {
           method: "POST",
           headers: {
+            apikey: key,
             Authorization: `Bearer ${key}`,
             "Content-Type": "application/pdf",
             "x-upsert": "false",
