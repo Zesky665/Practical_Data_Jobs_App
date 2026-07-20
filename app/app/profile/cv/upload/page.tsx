@@ -1,15 +1,29 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { uploadCV, type UploadCVState } from "./actions";
+import { useState } from "react";
+import { uploadCV } from "./actions";
 import Link from "next/link";
 
 export default function CVUploadPage() {
-  const [state, formAction, pending] = useActionState<UploadCVState, FormData>(
-    uploadCV,
-    {},
-  );
+  const [error, setError] = useState<string>("");
+  const [pending, setPending] = useState(false);
   const [fileName, setFileName] = useState<string>("");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setPending(true);
+
+    const formData = new FormData(e.currentTarget);
+    const result = await uploadCV({}, formData);
+
+    // uploadCV either redirects on success or returns { error }
+    if (result && "error" in result) {
+      setError(result.error!);
+      setPending(false);
+    }
+    // If it redirected we never get here
+  };
 
   return (
     <div className="space-y-[32px]">
@@ -23,23 +37,20 @@ export default function CVUploadPage() {
         </p>
       </div>
 
-      {state.error && (
+      {error && (
         <div className="bg-red-50 border border-red-200 rounded-[12px] p-[16px] flex items-start gap-[10px]">
           <span className="text-red-500 text-[18px] shrink-0 mt-[1px]">
             ⚠
           </span>
-          <p className="text-[14px] text-red-700 leading-[1.5]">
-            {state.error}
-          </p>
+          <p className="text-[14px] text-red-700 leading-[1.5]">{error}</p>
         </div>
       )}
 
       <form
-        action={formAction}
+        onSubmit={handleSubmit}
         encType="multipart/form-data"
         className="bg-brand-white rounded-[20px] border border-brand-line p-[40px] max-sm:p-[24px] space-y-[24px]"
       >
-        {/* File input */}
         <div className="space-y-[6px]">
           <label
             htmlFor="file"
@@ -66,7 +77,6 @@ export default function CVUploadPage() {
           )}
         </div>
 
-        {/* Guidelines */}
         <div className="bg-brand-muted rounded-[12px] p-[20px] space-y-[8px]">
           <h3 className="text-[14px] font-[700] text-brand-ink">
             Tips for best results
@@ -80,7 +90,6 @@ export default function CVUploadPage() {
           </ul>
         </div>
 
-        {/* Submit */}
         <div className="flex items-center gap-[12px]">
           <button
             type="submit"
