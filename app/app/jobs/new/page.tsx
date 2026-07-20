@@ -17,7 +17,7 @@ export default function NewJobPage() {
 
       <JobForm
         action={createJob}
-        submitLabel="Create job (draft)"
+        submitLabel="Create job"
         submitPendingLabel="Creating…"
         cancelHref="/app"
       />

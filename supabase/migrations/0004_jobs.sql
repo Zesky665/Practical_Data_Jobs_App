@@ -28,10 +28,9 @@ CREATE POLICY "jobs: owner CRUD" ON public.jobs
   FOR ALL USING (employer_id = auth.uid())
   WITH CHECK (employer_id = auth.uid());
 
--- Anyone can read published jobs.
--- If the remote DB uses a different status name, update this policy to match.
-CREATE POLICY "jobs: public read published" ON public.jobs
-  FOR SELECT USING (status = 'published');
+-- Anyone can read open jobs.
+CREATE POLICY "jobs: public read open" ON public.jobs
+  FOR SELECT USING (status = 'open');
 
 -- Grant table access to Supabase roles (not automatic in local dev).
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.jobs TO authenticated, service_role, anon;

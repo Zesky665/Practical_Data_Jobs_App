@@ -51,8 +51,8 @@ export default async function JobDetailPage({
   const { data: auth } = await supabase.auth.getUser();
   const isOwner = auth.user?.id === job.employer_id;
 
-  // Non-owners can only see published jobs
-  if (!isOwner && job.status !== "published") {
+  // Non-owners can only see open jobs
+  if (!isOwner && job.status !== "open") {
     return notFound();
   }
 

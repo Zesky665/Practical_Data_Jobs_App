@@ -58,8 +58,8 @@ DROP POLICY IF EXISTS "jobs: owner CRUD" ON public.jobs;
 CREATE POLICY "jobs: owner CRUD" ON public.jobs
   FOR ALL USING (employer_id = auth.uid()) WITH CHECK (employer_id = auth.uid());
 DROP POLICY IF EXISTS "jobs: public read published" ON public.jobs;
-CREATE POLICY "jobs: public read published" ON public.jobs
-  FOR SELECT USING (status = 'published');
+CREATE POLICY "jobs: public read open" ON public.jobs
+  FOR SELECT USING (status = 'open');
 
 -- 5. Search functions
 CREATE OR REPLACE FUNCTION public.match_jobs_for_cv(
@@ -67,7 +67,7 @@ CREATE OR REPLACE FUNCTION public.match_jobs_for_cv(
 ) RETURNS TABLE (id uuid, similarity float) LANGUAGE plpgsql AS $$
 BEGIN
   RETURN QUERY SELECT jobs.id, 1 - (jobs.embedding <=> query_embedding) AS similarity
-  FROM public.jobs WHERE jobs.embedding IS NOT NULL AND jobs.status = 'published'
+  FROM public.jobs WHERE jobs.embedding IS NOT NULL AND jobs.status = 'open'
   ORDER BY jobs.embedding <=> query_embedding LIMIT match_limit;
 END; $$;
 

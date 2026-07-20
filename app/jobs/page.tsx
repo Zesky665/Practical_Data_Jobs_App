@@ -22,7 +22,7 @@ export default async function JobsPage() {
       )
     `,
     )
-    .eq("status", "published")
+    .eq("status", "open")
     .order("created_at", { ascending: false })
     .limit(50);
 

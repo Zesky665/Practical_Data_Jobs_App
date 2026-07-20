@@ -20,7 +20,7 @@ BEGIN
   FROM public.jobs
   WHERE
     jobs.embedding IS NOT NULL
-    AND jobs.status = 'published'
+    AND jobs.status = 'open'
   ORDER BY jobs.embedding <=> query_embedding
   LIMIT match_limit;
 END;

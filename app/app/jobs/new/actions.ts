@@ -95,7 +95,7 @@ export async function createJob(
     };
   }
 
-  // Insert — let DB defaults handle status, created_at, updated_at
+  // Insert — explicit status avoids the admin-only "open" default trigger
   const { data: job, error: insertError } = await supabase
     .from("jobs")
     .insert({
@@ -104,6 +104,7 @@ export async function createJob(
       company,
       description,
       embedding: embedding as unknown as string,
+      status: "closed",
     })
     .select("id")
     .single();

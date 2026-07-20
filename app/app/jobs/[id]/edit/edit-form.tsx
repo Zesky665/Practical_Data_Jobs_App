@@ -72,34 +72,19 @@ export function EditJobForm({ job }: { job: Job }) {
             Current: {job.status}
           </span>
 
-          {/* Draft */}
+          {/* Open */}
           <button
             type="submit"
             name="status"
-            value="draft"
-            disabled={statusPending || job.status === "draft"}
+            value="open"
+            disabled={statusPending || job.status === "open"}
             className={`px-[20px] py-[10px] rounded-[8px] text-[14px] font-[600] border transition-colors duration-200 ${
-              job.status === "draft"
-                ? "bg-yellow-50 border-yellow-200 text-yellow-700 cursor-default"
-                : "bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100 disabled:opacity-50"
-            }`}
-          >
-            {job.status === "draft" ? "← Draft" : "Set draft"}
-          </button>
-
-          {/* Published */}
-          <button
-            type="submit"
-            name="status"
-            value="published"
-            disabled={statusPending || job.status === "published"}
-            className={`px-[20px] py-[10px] rounded-[8px] text-[14px] font-[600] border transition-colors duration-200 ${
-              job.status === "published"
+              job.status === "open"
                 ? "bg-green-50 border-green-200 text-green-700 cursor-default"
                 : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100 disabled:opacity-50"
             }`}
           >
-            {job.status === "published" ? "← Published" : "Publish"}
+            {job.status === "open" ? "← Open" : "Open"}
           </button>
 
           {/* Closed */}
