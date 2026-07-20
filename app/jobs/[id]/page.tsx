@@ -12,7 +12,7 @@ export default async function JobDetailPage({
 
   const { data: job } = await supabase
     .from("jobs")
-    .select("id, title, description, status, created_at, updated_at")
+    .select("id, title, company, description, status, created_at, updated_at")
     .eq("id", id)
     .single();
 
@@ -38,6 +38,7 @@ export default async function JobDetailPage({
         <div className="bg-brand-white rounded-[20px] border border-brand-line p-[40px] max-sm:p-[24px]">
           <div className="mb-[24px]">
             <h1 className="text-[28px] font-[700] text-brand-ink mb-[8px]">{job.title}</h1>
+            <p className="text-[16px] font-[600] text-brand-blue-600 mb-[8px]">{job.company}</p>
             <div className="flex items-center gap-[12px] text-[14px] text-brand-slate flex-wrap">
               <span>Posted {new Date(job.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
               {job.updated_at !== job.created_at && (
