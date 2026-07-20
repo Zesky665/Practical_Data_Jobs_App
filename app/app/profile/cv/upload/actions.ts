@@ -97,13 +97,43 @@ export async function uploadCV(
   try {
     // Prefer service-role client (bypasses RLS, works on both local and cloud).
     // Falls back to user client if SUPABASE_SERVICE_ROLE_KEY isn't configured.
-    const storageClient = createServiceClient() ?? supabase;
-    const { error: uploadError } = await storageClient.storage
-      .from("cvs")
-      .upload(storagePath, pdfBuffer, {
-        contentType: "application/pdf",
-        upsert: false,
-      });
+    const serviceClient = createServiceClient();
+    const storageClient = serviceClient ?? supabase;
+    console.log("[uploadCV] Using", serviceClient ? "service-role" : "user", "client for storage upload");
+
+    // On Cloud, the Supabase JS client's storage.upload() may still hit RLS
+    // even with service_role. Use raw fetch to the Storage API as fallback.
+    let uploadError: { message: string } | null = null;
+
+    if (serviceClient) {
+      // Direct Storage API call with service role — bypasses all RLS
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const res = await fetch(
+        `${url}/storage/v1/object/cvs/${storagePath}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/pdf",
+            "x-upsert": "false",
+          },
+          body: pdfBuffer,
+        },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ message: res.statusText }));
+        uploadError = { message: (body as { message?: string }).message ?? `HTTP ${res.status}` };
+      }
+    } else {
+      const result = await supabase.storage
+        .from("cvs")
+        .upload(storagePath, pdfBuffer, {
+          contentType: "application/pdf",
+          upsert: false,
+        });
+      uploadError = result.error;
+    }
 
     if (uploadError) {
       console.error("[uploadCV] Storage upload failed:", uploadError);
