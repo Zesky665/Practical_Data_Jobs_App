@@ -115,5 +115,5 @@ export async function createJob(
   }
 
   revalidatePath("/app/jobs");
-  redirect(`/jobs/${job.id}?created=1`);
+  redirect(`/jobs/${job.id}`);
 }

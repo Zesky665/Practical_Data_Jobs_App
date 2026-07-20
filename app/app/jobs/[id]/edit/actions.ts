@@ -112,7 +112,7 @@ export async function updateJob(
 
   revalidatePath(`/jobs/${id}`);
   revalidatePath(`/app/jobs/${id}/edit`);
-  redirect(`/jobs/${id}?updated=1`);
+  redirect(`/jobs/${id}`);
 }
 
 /**
