@@ -20,12 +20,10 @@ export default async function JobDetailPage({
     return notFound();
   }
 
+  // RLS already enforces visibility (owner CRUD + public read for public jobs).
+  // If we got a row, the viewer is authorized to see it.
   const { data: auth } = await supabase.auth.getUser();
   const isOwner = auth.user?.id === job.employer_id;
-
-  if (!isOwner && job.status !== "public") {
-    return notFound();
-  }
 
   return (
     <div className="min-h-screen bg-brand-muted">
