@@ -77,21 +77,22 @@ export default async function JobDetailPage({
           "@/lib/supabase/service"
         );
         const serviceClient = createServiceClient();
-        if (!serviceClient) return; // skip match display without service role
-        const { data: cvs } = await serviceClient
-          .from("cvs")
-          .select("id, original_filename")
-          .in("id", results.map((r) => r.id));
+        if (serviceClient) {
+          const { data: cvs } = await serviceClient
+            .from("cvs")
+            .select("id, original_filename")
+            .in("id", results.map((r) => r.id));
 
-        if (cvs) {
-          const simMap = new Map(results.map((r) => [r.id, r.similarity]));
-          matchingCandidates = cvs
-            .map((cv) => ({
-              cvId: cv.id,
-              filename: cv.original_filename,
-              similarity: simMap.get(cv.id) ?? 0,
-            }))
-            .sort((a, b) => b.similarity - a.similarity);
+          if (cvs) {
+            const simMap = new Map(results.map((r) => [r.id, r.similarity]));
+            matchingCandidates = cvs
+              .map((cv) => ({
+                cvId: cv.id,
+                filename: cv.original_filename,
+                similarity: simMap.get(cv.id) ?? 0,
+              }))
+              .sort((a, b) => b.similarity - a.similarity);
+          }
         }
       }
     } catch (err) {
