@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { searchJobsForCV } from "@/lib/search";
 import Link from "next/link";
 
 /**
@@ -31,6 +32,43 @@ export default async function ProfilePage() {
     .select("id, original_filename, raw_text, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
+
+  // Search for matching jobs using the most recent CV
+  let matchingJobs: {
+    id: string;
+    title: string;
+    employerName: string;
+    similarity: number;
+  }[] = [];
+  if (cvs && cvs.length > 0) {
+    try {
+      const results = await searchJobsForCV(cvs[0].id, 5);
+      if (results.length > 0) {
+        // Fetch job details using the user's RLS-scoped client
+        const { data: jobs } = await supabase
+          .from("jobs")
+          .select("id, title, employer_id, employer:profiles!jobs_employer_id_fkey(display_name)")
+          .in("id", results.map((r) => r.id));
+
+        if (jobs) {
+          const simMap = new Map(results.map((r) => [r.id, r.similarity]));
+          matchingJobs = jobs.map((j) => ({
+            id: j.id,
+            title: j.title,
+            employerName:
+              (j.employer as unknown as { display_name: string | null }[])?.[0]
+                ?.display_name ?? "Anonymous employer",
+            similarity: simMap.get(j.id) ?? 0,
+          }));
+          // Sort by similarity descending
+          matchingJobs.sort((a, b) => b.similarity - a.similarity);
+        }
+      }
+    } catch (err) {
+      console.error("[ProfilePage] Search failed:", err);
+      // Non-fatal — profile still renders without matches
+    }
+  }
 
   const email = user.email ?? "unknown";
   const displayName =
@@ -182,6 +220,48 @@ export default async function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Matching jobs */}
+      {matchingJobs.length > 0 && (
+        <div className="bg-brand-white rounded-[20px] border border-brand-line p-[40px] max-sm:p-[24px]">
+          <h2 className="text-[18px] font-[700] text-brand-ink mb-[20px]">
+            Matching jobs
+          </h2>
+          <p className="text-[13px] text-brand-slate mb-[20px]">
+            Based on your most recent CV. Higher percentages mean a stronger
+            match.
+          </p>
+          <div className="space-y-[10px]">
+            {matchingJobs.map((job) => (
+              <Link
+                key={job.id}
+                href={`/jobs/${job.id}`}
+                className="flex items-center justify-between px-[20px] py-[14px] rounded-[12px] border border-brand-line no-underline hover:border-brand-blue-200 hover:bg-brand-blue-50/50 transition-all duration-200"
+              >
+                <div className="flex-1 min-w-0">
+                  <span className="block text-[14px] font-[600] text-brand-ink">
+                    {job.title}
+                  </span>
+                  <span className="block text-[12px] text-brand-slate mt-[2px]">
+                    {job.employerName}
+                  </span>
+                </div>
+                <span
+                  className={`ml-[16px] text-[13px] font-[700] shrink-0 ${
+                    job.similarity >= 0.7
+                      ? "text-green-600"
+                      : job.similarity >= 0.5
+                        ? "text-brand-blue-600"
+                        : "text-brand-slate"
+                  }`}
+                >
+                  {Math.round(job.similarity * 100)}% match
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick links */}
       <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-[16px]">
