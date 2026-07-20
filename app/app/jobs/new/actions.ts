@@ -95,8 +95,7 @@ export async function createJob(
     };
   }
 
-  // Insert
-  const now = new Date().toISOString();
+  // Insert — let DB defaults handle status, created_at, updated_at
   const { data: job, error: insertError } = await supabase
     .from("jobs")
     .insert({
@@ -105,9 +104,6 @@ export async function createJob(
       company,
       description,
       embedding: embedding as unknown as string,
-      status: "draft",
-      created_at: now,
-      updated_at: now,
     })
     .select("id")
     .single();
