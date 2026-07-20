@@ -26,7 +26,7 @@ DROP POLICY IF EXISTS "cvs: owner CRUD" ON public.cvs;
 CREATE POLICY "cvs: owner CRUD" ON public.cvs
   FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
--- 4. Jobs table
+-- 4. Jobs table (existing table might be stale from old migrations)
 CREATE TABLE IF NOT EXISTS public.jobs (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   employer_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -37,6 +37,15 @@ CREATE TABLE IF NOT EXISTS public.jobs (
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
+
+-- Fix columns if the table existed from an old schema
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS employer_id uuid;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS embedding extensions.vector(1024);
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS status text;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS created_at timestamptz;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS updated_at timestamptz;
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "jobs: owner CRUD" ON public.jobs;
 CREATE POLICY "jobs: owner CRUD" ON public.jobs
