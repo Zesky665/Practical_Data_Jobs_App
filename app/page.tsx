@@ -73,7 +73,7 @@ const categories: Category[] = [
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; error_code?: string; error_description?: string; code?: string }>;
+  searchParams: Promise<{ error?: string; error_code?: string; error_description?: string; code?: string; type?: string }>;
 }) {
   // Handle auth error callbacks from Supabase (e.g., expired reset-password
   // links, OAuth failures). Supabase redirects to the Site URL with ?error=…
@@ -81,12 +81,17 @@ export default async function Home({
   const sp = await searchParams;
   const authError = sp.error_description ?? sp.error;
 
-  // Fallback: if Supabase redirects here with a PKCE code (the redirectTo
-  // URL wasn't honored — see forgot-password/actions.ts), the middleware has
-  // already exchanged it for a session. Redirect to update-password so the
-  // user can set a new password.
-  if (sp.code) {
+  // Fallback for password reset: if Supabase redirects here with a PKCE code
+  // (the redirectTo URL wasn't honored — see forgot-password/actions.ts).
+  // Only redirect if the path includes a recovery indication.
+  if (sp.code && sp.type !== "signup") {
     return redirect("/auth/update-password");
+  }
+
+  // Handle signup confirmation: if the callback route wasn't deployed yet,
+  // Supabase may redirect here with a code from email confirmation.
+  if (sp.code && sp.type === "signup") {
+    return redirect("/app");
   }
 
   // Server-side auth check. Use getUser() (PLAN.md §0 convention #5) —

@@ -37,16 +37,16 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Do not run code between createServerClient and getUser(). A simple
-  // mistake here causes random logouts.
-  //
-  // IMPORTANT: getUser() is the recommended way to read the session in
-  // middleware (server-side, untrusted context). getClaims() and
-  // getSession() can throw in some edge cases (asymmetric-key fetch
-  // failures, expired tokens, etc.) and would crash this middleware —
-  // turning every request on the route into a 500. getUser() returns
-  // { data: { user: null } } for logged-out users instead of throwing.
-  const { data: { user } } = await supabase.auth.getUser();
+  // Wrap in try/catch — stale cookies from a different Supabase instance
+  // (e.g. switching between local and Cloud) cause refresh_token_not_found
+  // errors that getUser() surfaces as exceptions. Treat these as logged-out.
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    // Stale session — user is effectively logged out
+  }
 
   const { pathname } = request.nextUrl;
   // Allowlist-style: only /app/* is gated. Everything else (/, /auth/*, and
