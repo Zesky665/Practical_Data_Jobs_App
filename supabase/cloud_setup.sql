@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS public.jobs (
 );
 
 -- If the table already exists and had a different status CHECK constraint,
--- run 0006_fix_jobs_status.sql to migrate it.
+-- run scripts/0006_fix_jobs_status.sql to migrate it.
 
 -- Fix columns if the table existed from an old schema
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS employer_id uuid;

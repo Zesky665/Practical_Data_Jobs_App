@@ -565,6 +565,7 @@ CREATE POLICY "jobs: public read public" ON public.jobs
 -- Migration 0006: fix status model on remote DBs that were set up with
 -- the old open/closed model + admin trigger. Drops the trigger, updates
 -- the CHECK constraint, migrates 'open' rows to 'public'.
+-- (Located in scripts/0006_fix_jobs_status.sql)
 ```
 
 ### 9.4 Milestones
