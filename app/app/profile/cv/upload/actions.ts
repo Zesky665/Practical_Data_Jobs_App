@@ -143,8 +143,7 @@ export async function uploadCV(
   if (insertError) {
     console.error("[uploadCV] DB insert failed:", insertError);
     return {
-      error:
-        "Failed to save your CV data. The file was uploaded but the record couldn't be created. Please try again.",
+      error: `Failed to save CV data: ${insertError.message}`,
     };
   }
 
