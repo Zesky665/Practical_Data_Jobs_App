@@ -53,9 +53,10 @@ export async function uploadCV(
 
   // 2. Extract text from PDF using pdf2json (no worker dependency)
   let rawText: string;
+  let pdfBuffer: ArrayBuffer;
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    pdfBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(pdfBuffer);
     const pdf2json = await import("pdf2json");
     const PDFParser = pdf2json.default;
     rawText = await new Promise<string>((resolve, reject) => {
@@ -95,10 +96,9 @@ export async function uploadCV(
 
   try {
     const serviceClient = createServiceClient();
-    const arrayBuffer = await file.arrayBuffer();
     const { error: uploadError } = await serviceClient.storage
       .from("cvs")
-      .upload(storagePath, arrayBuffer, {
+      .upload(storagePath, pdfBuffer, {
         contentType: "application/pdf",
         upsert: false,
       });
