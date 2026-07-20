@@ -69,7 +69,17 @@ const categories: Category[] = [
   { name: "Data Leadership", count: "980 open roles", tint: "cyan", variant: "bg-brand-cyan-500" },
 ];
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; error_code?: string; error_description?: string }>;
+}) {
+  // Handle auth error callbacks from Supabase (e.g., expired reset-password
+  // links, OAuth failures). Supabase redirects to the Site URL with ?error=…
+  // when a flow fails, so we surface it here rather than silently ignoring it.
+  const sp = await searchParams;
+  const authError = sp.error_description ?? sp.error;
+
   // Server-side auth check. Use getUser() (PLAN.md §0 convention #5) —
   // getSession() trusts the cookie without re-validation. Fall back to logged-out
   // when env vars aren't configured yet (fresh clone before `supabase start`).
@@ -111,6 +121,31 @@ export default async function Home() {
           </div>
         </div>
       </div>
+
+      {/* Auth error banner — surfaced when Supabase redirects here with ?error=… */}
+      {authError && (
+        <div className="bg-red-50 border-b border-red-200">
+          <div className="max-w-[72rem] mx-auto px-[24px] py-[16px] flex items-start gap-[12px]">
+            <span className="text-red-500 text-[18px] shrink-0 mt-[1px]">⚠</span>
+            <div className="flex flex-col gap-[8px] flex-1">
+              <p className="text-[15px] text-red-800 font-[600]">
+                Authentication problem
+              </p>
+              <p className="text-[14px] text-red-700 leading-[1.5]">
+                {authError === "Email link is invalid or has expired"
+                  ? "Your reset link has expired or is invalid. Please request a new one below."
+                  : authError}
+              </p>
+              <a
+                href="/auth/forgot-password"
+                className="text-[14px] text-brand-blue-600 font-[600] hover:underline self-start"
+              >
+                Request a new reset link →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- hero --- */}
       <section className="bg-gradient-to-b from-brand-white to-brand-blue-50">

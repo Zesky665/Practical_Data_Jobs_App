@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { headers } from "next/headers";
 
 /**
  * Sends a password-reset email to the given address. Supabase handles the email
@@ -24,12 +23,10 @@ export async function forgotPassword(
 
   const supabase = await createClient();
 
-  // Build the redirect URL from the incoming request's origin.
-  const headersList = await headers();
-  const host = headersList.get("host") ?? "";
-  const proto = headersList.get("x-forwarded-proto") ?? "http";
-  const origin = `${proto}://${host}`;
-  const redirectTo = `${origin}/auth/update-password`;
+  // Relative path — Supabase resolves this against the configured Site URL.
+  // An absolute URL risks a mismatch with the allowed redirect URLs list in
+  // the Supabase dashboard, causing a fallback to /?error=... instead.
+  const redirectTo = "/auth/update-password";
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo,
