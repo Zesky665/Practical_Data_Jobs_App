@@ -130,14 +130,16 @@ export async function uploadCV(
     };
   }
 
-  // 5. Insert into cvs table
-  const { error: insertError } = await supabase.from("cvs").insert({
+  // 5. Insert into cvs table (service role — bypasses RLS since the user
+  //    identity is already verified via getUser() above)
+  const serviceClient = createServiceClient();
+  const { error: insertError } = await serviceClient.from("cvs").insert({
     id: cvId,
     user_id: user.id,
     file_path: storagePath,
     original_filename: file.name,
     raw_text: rawText,
-    embedding: embedding as unknown as string, // pgvector accepts number[] via Supabase JS
+    embedding: embedding as unknown as string,
   });
 
   if (insertError) {
