@@ -106,15 +106,14 @@ export async function uploadCV(
     if (uploadError) {
       console.error("[uploadCV] Storage upload failed:", uploadError);
       return {
-        error:
-          "Failed to store your CV file. Please try again. If the problem persists, contact support.",
+        error: `Failed to store your CV: ${uploadError.message}`,
       };
     }
   } catch (err) {
-    console.error("[uploadCV] Storage upload exception:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[uploadCV] Storage upload exception:", message);
     return {
-      error:
-        "Failed to store your CV file. Please try again.",
+      error: `Failed to store your CV: ${message}`,
     };
   }
 
