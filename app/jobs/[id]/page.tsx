@@ -3,23 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ created?: string; updated?: string }>;
 
-/**
- * Public job detail page.
- * Owner sees edit/status controls. Non-owner sees the listing only.
- * Draft/closed jobs return 404 for non-owners.
- * Supports ?created=1 and ?updated=1 for success flash banners.
- */
 export default async function JobDetailPage({
   params,
-  searchParams,
 }: {
   params: Params;
-  searchParams: SearchParams;
 }) {
   const { id } = await params;
-  const { created, updated } = await searchParams;
   const supabase = await createClient();
 
   const { data: job } = await supabase
@@ -98,25 +88,6 @@ export default async function JobDetailPage({
                 {job.status}
               </span>
             )}
-          </div>
-        )}
-
-        {/* Success banners */}
-        {created === "1" && (
-          <div className="bg-green-50 border border-green-200 rounded-[12px] p-[16px] flex items-start gap-[10px] mb-[24px]">
-            <span className="text-green-500 text-[18px] shrink-0 mt-[1px]">✓</span>
-            <p className="text-[14px] text-green-700 leading-[1.5]">
-              Job created successfully! It&apos;s saved as a draft — you can edit
-              and publish it when ready.
-            </p>
-          </div>
-        )}
-        {updated === "1" && (
-          <div className="bg-green-50 border border-green-200 rounded-[12px] p-[16px] flex items-start gap-[10px] mb-[24px]">
-            <span className="text-green-500 text-[18px] shrink-0 mt-[1px]">✓</span>
-            <p className="text-[14px] text-green-700 leading-[1.5]">
-              Job updated successfully.
-            </p>
           </div>
         )}
 
