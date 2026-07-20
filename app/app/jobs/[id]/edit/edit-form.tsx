@@ -63,6 +63,10 @@ export function EditJobForm({ job }: { job: Job }) {
         <input type="hidden" name="job_id" value={job.id} />
 
         <h2 className="text-[18px] font-[700] text-brand-ink">Status</h2>
+        <p className="text-[13px] text-brand-slate">
+          Only admins can set a job to open. If you&apos;re not an admin, use
+          Close instead.
+        </p>
 
         <div className="flex items-center gap-[12px] flex-wrap">
           <input type="hidden" name="status" id="status-input" />
