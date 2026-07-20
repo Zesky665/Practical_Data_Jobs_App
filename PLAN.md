@@ -161,9 +161,9 @@ the next phase until the previous one is green and committed.
 | M2.A Sign-up | ✅ Done | Email/password, email confirmation off (dev) |
 | M2.B Sign-in + sign-out | ✅ Done | useActionState forms, auth-button header widget |
 | M2.C Route gate + /app | ✅ Done | proxy.ts gates /app/*, /app placeholder page |
-| M2.D Sign-up confirmation email (Lettermint) | ⬜ To do | practicaldatajobs.com domain; token in `.env.local` as `LETTERMINT_API_TOKEN` |
-| M3.A Password reset | ✅ Done | Forgot-password + update-password pages; client-side hash-fragment exchange |
-| M3.B Test harness + CI | ⬜ Deferred | |
+| M2.D Sign-up confirmation email (Lettermint) | ✅ Done | practicaldatajobs.com domain; token in `.env.local` as `LETTERMINT_API_TOKEN` |
+| M3.A Password reset | ✅ Done | |
+| M3.B Test harness + CI | ✅ Done  | |
 
 ---
 
