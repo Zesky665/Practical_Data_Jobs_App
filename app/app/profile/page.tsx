@@ -2,11 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
 /**
- * Profile page — M4.B.
+ * Profile page — M4.B + M5.D.
  *
- * Reads the authenticated user's profile row and displays it. Falls back
- * gracefully if the profile row is missing (shouldn't happen thanks to the
- * handle_new_user trigger, but we handle it anyway).
+ * Reads the authenticated user's profile row and uploaded CVs.
  */
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -14,7 +12,6 @@ export default async function ProfilePage() {
   const user = auth.user;
 
   if (!user) {
-    // Should never happen — proxy.ts gates /app/*. Safety redirect.
     return (
       <div className="bg-brand-white rounded-[20px] border border-brand-line p-[48px] text-center">
         <p className="text-brand-slate">Loading your account…</p>
@@ -27,6 +24,13 @@ export default async function ProfilePage() {
     .select("*")
     .eq("id", user.id)
     .single();
+
+  // Fetch uploaded CVs
+  const { data: cvs } = await supabase
+    .from("cvs")
+    .select("id, original_filename, raw_text, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
 
   const email = user.email ?? "unknown";
   const displayName =
@@ -49,7 +53,6 @@ export default async function ProfilePage() {
       {/* Profile card */}
       <div className="bg-brand-white rounded-[20px] border border-brand-line p-[40px] max-sm:p-[24px]">
         <div className="flex items-start gap-[24px] max-sm:flex-col">
-          {/* Avatar placeholder */}
           <div
             className="w-[72px] h-[72px] rounded-[16px] flex items-center justify-center text-brand-white font-[700] text-[28px] shrink-0"
             style={{
@@ -83,6 +86,101 @@ export default async function ProfilePage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Uploaded CVs */}
+      <div className="bg-brand-white rounded-[20px] border border-brand-line p-[40px] max-sm:p-[24px]">
+        <div className="flex items-center justify-between mb-[20px]">
+          <h2 className="text-[18px] font-[700] text-brand-ink">
+            Your CVs
+          </h2>
+          <Link
+            href="/app/profile/cv/upload"
+            className="px-[16px] py-[8px] rounded-[8px] bg-brand-blue-600 text-brand-white text-[13px] font-[600] no-underline hover:bg-brand-blue-700 transition-colors duration-200"
+          >
+            Upload new CV
+          </Link>
+        </div>
+
+        {cvs && cvs.length > 0 ? (
+          <div className="space-y-[12px]">
+            {cvs.map((cv) => (
+              <details
+                key={cv.id}
+                className="border border-brand-line rounded-[12px] group"
+              >
+                <summary className="flex items-center justify-between px-[20px] py-[16px] cursor-pointer hover:bg-brand-muted transition-colors duration-200">
+                  <div className="flex items-center gap-[12px]">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-brand-blue-600"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    <div>
+                      <span className="block text-[14px] font-[600] text-brand-ink">
+                        {cv.original_filename}
+                      </span>
+                      <span className="block text-[12px] text-brand-slate mt-[1px]">
+                        Uploaded{" "}
+                        {new Date(cv.created_at).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-brand-slate-2 group-open:rotate-180 transition-transform duration-200"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </summary>
+                <div className="px-[20px] pb-[20px] border-t border-brand-line">
+                  <pre className="text-[13px] text-brand-ink-soft leading-[1.6] whitespace-pre-wrap font-sans mt-[16px] max-h-[300px] overflow-y-auto bg-brand-muted rounded-[8px] p-[16px]">
+                    {cv.raw_text.slice(0, 5000)}
+                    {cv.raw_text.length > 5000 && (
+                      <span className="text-brand-slate-2 italic">
+                        {"\n\n… (text truncated — full CV available in the uploaded file)"}
+                      </span>
+                    )}
+                  </pre>
+                </div>
+              </details>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-[32px]">
+            <p className="text-[14px] text-brand-slate-2">
+              No CVs uploaded yet. Upload one to get matched with jobs.
+            </p>
+            <Link
+              href="/app/profile/cv/upload"
+              className="inline-block mt-[12px] text-[14px] text-brand-blue-600 font-[600] hover:underline"
+            >
+              Upload your first CV →
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Quick links */}
