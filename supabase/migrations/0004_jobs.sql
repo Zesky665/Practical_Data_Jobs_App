@@ -1,6 +1,10 @@
 -- Practical_Data_Jobs_App — M6: jobs table
 -- Job postings with Voyage AI embeddings for semantic search.
 -- Gated by profiles.can_post_jobs (checked in the Server Action, not RLS).
+--
+-- Note: the remote DB may have a different CHECK constraint on status.
+-- The app does not hardcode status values; it relies on the DB's constraint
+-- and displays whatever status value the DB returns.
 
 CREATE TABLE public.jobs (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -9,8 +13,7 @@ CREATE TABLE public.jobs (
   company     text NOT NULL,
   description text NOT NULL,
   embedding   extensions.vector(1024),
-  status      text NOT NULL DEFAULT 'draft'
-              CHECK (status IN ('draft', 'published', 'closed')),
+  status      text NOT NULL DEFAULT 'draft',
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -26,6 +29,7 @@ CREATE POLICY "jobs: owner CRUD" ON public.jobs
   WITH CHECK (employer_id = auth.uid());
 
 -- Anyone can read published jobs.
+-- If the remote DB uses a different status name, update this policy to match.
 CREATE POLICY "jobs: public read published" ON public.jobs
   FOR SELECT USING (status = 'published');
 

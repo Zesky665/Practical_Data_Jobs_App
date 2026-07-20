@@ -149,19 +149,9 @@ export default async function JobDetailPage({
             >
               Edit job
             </Link>
-            {job.status === "draft" && (
-              <span className="px-[10px] py-[4px] rounded-[6px] bg-yellow-50 border border-yellow-200 text-yellow-700 text-[12px] font-[600]">
-                Draft
-              </span>
-            )}
-            {job.status === "published" && (
-              <span className="px-[10px] py-[4px] rounded-[6px] bg-green-50 border border-green-200 text-green-700 text-[12px] font-[600]">
-                Published
-              </span>
-            )}
-            {job.status === "closed" && (
-              <span className="px-[10px] py-[4px] rounded-[6px] bg-red-50 border border-red-200 text-red-700 text-[12px] font-[600]">
-                Closed
+            {job.status && (
+              <span className="px-[10px] py-[4px] rounded-[6px] bg-brand-muted border border-brand-line text-brand-slate text-[12px] font-[600] capitalize">
+                {job.status}
               </span>
             )}
           </div>

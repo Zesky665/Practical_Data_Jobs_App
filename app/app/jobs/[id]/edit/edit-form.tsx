@@ -67,6 +67,11 @@ export function EditJobForm({ job }: { job: Job }) {
         <div className="flex items-center gap-[12px] flex-wrap">
           <input type="hidden" name="status" id="status-input" />
 
+          {/* Current status */}
+          <span className="px-[20px] py-[10px] rounded-[8px] text-[14px] font-[600] border bg-brand-muted border-brand-line text-brand-slate capitalize cursor-default">
+            Current: {job.status}
+          </span>
+
           {/* Draft */}
           <button
             type="submit"
@@ -82,7 +87,7 @@ export function EditJobForm({ job }: { job: Job }) {
             {job.status === "draft" ? "← Draft" : "Set draft"}
           </button>
 
-          {/* Publish */}
+          {/* Published */}
           <button
             type="submit"
             name="status"
@@ -97,7 +102,7 @@ export function EditJobForm({ job }: { job: Job }) {
             {job.status === "published" ? "← Published" : "Publish"}
           </button>
 
-          {/* Close */}
+          {/* Closed */}
           <button
             type="submit"
             name="status"

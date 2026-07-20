@@ -133,11 +133,8 @@ export async function updateJobStatus(
   const id = formData.get("job_id") as string;
   const status = formData.get("status") as string;
 
-  if (
-    !status ||
-    !["draft", "published", "closed"].includes(status)
-  ) {
-    return { error: "Invalid status." };
+  if (!status) {
+    return { error: "No status provided." };
   }
 
   const { error: updateError } = await supabase

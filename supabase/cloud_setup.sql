@@ -34,10 +34,15 @@ CREATE TABLE IF NOT EXISTS public.jobs (
   company     text NOT NULL,
   description text NOT NULL,
   embedding   extensions.vector(1024),
-  status      text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'closed')),
+  status      text NOT NULL DEFAULT 'draft',
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
+
+-- If the table already exists and has a different status CHECK constraint,
+-- this ALTER is a no-op. The app does not hardcode valid statuses.
+ALTER TABLE public.jobs ALTER COLUMN status DROP DEFAULT;
+ALTER TABLE public.jobs ALTER COLUMN status SET DEFAULT 'draft';
 
 -- Fix columns if the table existed from an old schema
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS employer_id uuid;
