@@ -69,10 +69,10 @@ export async function uploadCV(
     }
     rawText = parts.join("\n\n");
   } catch (err) {
-    console.error("[uploadCV] PDF extraction failed:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[uploadCV] PDF extraction failed:", message);
     return {
-      error:
-        "Could not extract text from this PDF. Make sure it's a valid, text-based PDF (not scanned images).",
+      error: `Could not extract text from this PDF: ${message}. Make sure it's a valid, text-based PDF (not scanned images).`,
     };
   }
 
