@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
 /**
- * Public job listing page. Shows all published jobs, newest first.
+ * Public job listing page. Shows all public jobs, newest first.
  * No auth required — this is the public-facing job board.
  */
 export default async function JobsPage() {

@@ -12,12 +12,22 @@ export default async function JobDetailPage({
 
   const { data: job } = await supabase
     .from("jobs")
-    .select("id, title, company, description, status, created_at, updated_at")
+    .select("id, title, company, description, status, employer_id, created_at, updated_at")
     .eq("id", id)
     .single();
 
   if (!job) {
     return notFound();
+  }
+
+  // Check if viewer is the owner (for edit controls). RLS already
+  // enforces visibility — this is purely for UI state.
+  let isOwner = false;
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    isOwner = auth.user?.id === job.employer_id;
+  } catch {
+    // getUser() can fail in public contexts — safe to ignore
   }
 
   return (
@@ -28,13 +38,24 @@ export default async function JobDetailPage({
             <span className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center text-brand-white font-[800] text-[16px]" style={{ background: "linear-gradient(135deg,var(--brand-blue-600) 0%,var(--brand-cyan-500) 100%)" }}>P</span>
             <span className="font-[700] text-[16px]">Practical Data Jobs</span>
           </Link>
-          <Link href="/jobs" className="text-[14px] text-brand-slate hover:text-brand-ink transition-colors">
-            ← All jobs
-          </Link>
+          <div className="flex items-center gap-[16px]">
+            {isOwner ? (
+              <Link href="/app" className="text-[14px] text-brand-blue-600 hover:underline">Dashboard</Link>
+            ) : (
+              <Link href="/jobs" className="text-[14px] text-brand-slate hover:text-brand-ink transition-colors">← All jobs</Link>
+            )}
+          </div>
         </div>
       </div>
 
       <main className="max-w-[72rem] mx-auto px-[24px] py-[48px]">
+        {isOwner && (
+          <div className="flex items-center gap-[12px] mb-[24px] flex-wrap">
+            <Link href={`/app/jobs/${job.id}/edit`} className="px-[16px] py-[8px] rounded-[8px] bg-brand-blue-50 text-brand-blue-600 text-[13px] font-[600] no-underline hover:bg-brand-blue-100 transition-colors duration-200">Edit job</Link>
+            <span className="px-[10px] py-[4px] rounded-[6px] bg-brand-muted border border-brand-line text-brand-slate text-[12px] font-[600] capitalize">{job.status}</span>
+          </div>
+        )}
+
         <div className="bg-brand-white rounded-[20px] border border-brand-line p-[40px] max-sm:p-[24px]">
           <div className="mb-[24px]">
             <h1 className="text-[28px] font-[700] text-brand-ink mb-[8px]">{job.title}</h1>

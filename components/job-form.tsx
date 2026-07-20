@@ -3,7 +3,7 @@
 import { useActionState, useState, useCallback } from "react";
 import Link from "next/link";
 
-  export type JobFormState = {
+export type JobFormState = {
   error?: string;
   fieldErrors?: {
     title?: string;
