@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
 
 -- cvs: one user can have multiple CV versions over time.
-CREATE TABLE public.cvs (
+CREATE TABLE IF NOT EXISTS public.cvs (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id           uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   file_path         text NOT NULL,
