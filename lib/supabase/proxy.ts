@@ -37,13 +37,16 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Do not run code between createServerClient and getClaims(). A simple
+  // Do not run code between createServerClient and getUser(). A simple
   // mistake here causes random logouts.
   //
-  // IMPORTANT: removing getClaims() with SSR + Supabase clients causes users
-  // to be randomly logged out.
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
+  // IMPORTANT: getUser() is the recommended way to read the session in
+  // middleware (server-side, untrusted context). getClaims() and
+  // getSession() can throw in some edge cases (asymmetric-key fetch
+  // failures, expired tokens, etc.) and would crash this middleware —
+  // turning every request on the route into a 500. getUser() returns
+  // { data: { user: null } } for logged-out users instead of throwing.
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
   // Allowlist-style: only /app/* is gated. Everything else (/, /auth/*, and
