@@ -27,8 +27,8 @@ and one source of truth per concept.
 
 **Why this stack.** Same rationale as PDC_Job_Board: consolidates DB + auth +
 (matching later) into one platform so there's no second service to operate.
-Supabase Auth gives us email/password and Discord OAuth without us rolling our
-own.
+Supabase Auth gives us email/password out of the box; Discord OAuth is also
+available (deferred — see §8 Backlog).
 
 **Conventions (these have bitten us before — keep them).**
 1. **The verification gate is `npm run check`** (lint + `next build`), not
@@ -113,7 +113,6 @@ Practical_Data_Jobs_App/
 
 **In scope:** user identity and access only.
 - Email/password sign-up, sign-in, sign-out.
-- Discord OAuth sign-up/sign-in.
 - Password reset (forgot-password → email link → update-password).
 - Session management (SSR-safe, refreshed in middleware).
 - Middleware route gate (public vs. auth-required).
@@ -123,13 +122,12 @@ Practical_Data_Jobs_App/
 - Test harness + a CI workflow.
 
 **Out of scope (do not build yet):** roles, jobs, resumes, matching, employer
-self-serve posting, admin moderation queue, link checking, embeddings, any UI
-beyond what auth strictly needs (a home page placeholder, a profile page
-placeholder, login/signup forms, OAuth callback handler).
+self-serve posting, admin moderation queue, link checking, embeddings, Discord
+OAuth (deferred — see §8 Backlog), any UI beyond what auth strictly needs (a
+home page placeholder, a profile page placeholder, login/signup forms).
 
 **Definition of done for this plan:**
 - A new visitor can sign up with email/password, log in, log out.
-- A new visitor can sign up/log in with Discord.
 - A logged-out user hitting `/profile` is redirected to `/auth/login`.
 - A logged-in user can reset their password via email.
 - `profiles` exists and every confirmed sign-up produces a row.
@@ -147,7 +145,7 @@ and is one or more commits.
 ### M1 — Scaffolding + profiles table + landing page port
 ### M2 — Email/password auth
 ### M2.D — Sign-up confirmation email via Lettermint (rolls into M2)
-### M3 — Discord OAuth + password reset + CI
+### M3 — Password reset + CI
 
 Phases inside each milestone are sized so one phase ≈ one commit. Don't start
 the next phase until the previous one is green and committed.
@@ -164,9 +162,8 @@ the next phase until the previous one is green and committed.
 | M2.B Sign-in + sign-out | ✅ Done | useActionState forms, auth-button header widget |
 | M2.C Route gate + /app | ✅ Done | proxy.ts gates /app/*, /app placeholder page |
 | M2.D Sign-up confirmation email (Lettermint) | ⬜ To do | practicaldatajobs.com domain; token in `.env.local` as `LETTERMINT_API_TOKEN` |
-| M3.A Discord OAuth | ⬜ Deferred | |
-| M3.B Password reset | ⬜ Deferred | |
-| M3.C Test harness + CI | ⬜ Deferred | |
+| M3.A Password reset | ⬜ Deferred | |
+| M3.B Test harness + CI | ⬜ Deferred | |
 
 ---
 
@@ -311,26 +308,12 @@ logged, not silent. Commit.
 
 ---
 
-## 5. M3 — Discord OAuth + password reset + CI
+## 5. M3 — Password reset + CI
 
-Goal: complete the auth story so Discord members can use their existing
-identity, anyone can recover from a forgotten password, and the gate runs in CI.
+Goal: complete the auth story so anyone can recover from a forgotten password,
+and the gate runs in CI.
 
-### 5.1 Phase A — Discord OAuth
-- [ ] Repo-root `.env` (gitignored) with `DISCORD_CLIENT_ID`,
-      `DISCORD_CLIENT_SECRET`. `.env.example` documents the keys.
-- [ ] Enable Discord provider in Supabase config (locally via `config.toml` or
-      dashboard; on deploy via dashboard + prod creds).
-- [ ] `app/auth/callback/route.ts`: exchanges the code for a session, handles
-      errors (Supabase returns `error_description`), redirects to `next` param
-      or `/profile`.
-- [ ] Login + signup pages get a "Continue with Discord" button that hits
-      `supabase.auth.signInWithOAuth({ provider: 'discord', options: {
-      redirectTo: <origin>/auth/callback })`.
-- [ ] **Verify:** local OAuth round trip with a Discord dev app; new user gets
-      a `profiles` row via the trigger. `npm run check` green.
-
-### 5.2 Phase B — Password reset
+### 5.1 Phase A — Password reset
 - [ ] `app/auth/forgot-password/page.tsx`: email field →
       `supabase.auth.resetPasswordForEmail(email, { redirectTo:
       <origin>/auth/update-password })`.
@@ -341,7 +324,7 @@ identity, anyone can recover from a forgotten password, and the gate runs in CI.
 - [ ] **Verify:** full forgot → email → click → update → logged-in flow works.
       `npm run check` green.
 
-### 5.3 Phase C — Test harness + CI
+### 5.2 Phase B — Test harness + CI
 - [ ] `tests/helpers.ts`: service-role admin client (for setup/assertions +
       `auth.admin.createUser` in tests — `createUser` requires service role),
       per-test user create/delete helper, `asUser(token)` client.
@@ -351,7 +334,6 @@ identity, anyone can recover from a forgotten password, and the gate runs in CI.
       - logout → session invalidated
       - logged-out hit on a protected route → no session cookie (middleware
         gate asserted via a real request)
-      - OAuth callback rejects a bad/missing code (assert on the error path)
 - [ ] `.github/workflows/ci.yml`: Node 22 (Supabase-JS needs a global
       `WebSocket`, missing in Node 20 — learned the hard way on PDC_Job_Board),
       `supabase start`, `npm ci`, `npm run check`, `npm test`.
@@ -399,3 +381,31 @@ declaring any phase done.
 - **`getUser()` vs `getSession()`:** Supabase docs recommend `getUser()` for any
   server-side gating because it re-validates the JWT server-side; `getSession()`
   trusts the cookie and is unsafe for authorization decisions.
+
+---
+
+## 8. Backlog
+
+Deferred work, not part of the current plan's milestones. Captured here so a
+future session can pick it up without re-deriving the design.
+
+### Discord OAuth (was M3.A)
+Deferred to avoid introducing OAuth complexity before the core auth story
+(email/password, password reset, CI) is solid. PDC members already have Discord
+accounts, so this is the natural primary login once it's worth the complexity.
+
+Design notes (carried over from the original M3.A):
+- Repo-root `.env` (gitignored) with `DISCORD_CLIENT_ID`,
+  `DISCORD_CLIENT_SECRET`. `.env.example` documents the keys.
+- Enable Discord provider in Supabase config (locally via `config.toml` or
+  dashboard; on deploy via dashboard + prod creds).
+- `app/auth/callback/route.ts`: exchanges the code for a session, handles
+  errors (Supabase returns `error_description`), redirects to `next` param
+  or `/profile`.
+- Login + signup pages get a "Continue with Discord" button that hits
+  `supabase.auth.signInWithOAuth({ provider: 'discord', options: {
+  redirectTo: <origin>/auth/callback })`.
+- **Verify:** local OAuth round trip with a Discord dev app; new user gets a
+  `profiles` row via the trigger. `npm run check` green.
+- Add a test to the M3 harness: OAuth callback rejects a bad/missing code
+  (assert on the error path).
