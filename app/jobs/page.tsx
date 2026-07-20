@@ -14,6 +14,7 @@ export default async function JobsPage() {
       `
       id,
       title,
+      company,
       description,
       created_at,
       employer:profiles!jobs_employer_id_fkey (
@@ -85,6 +86,9 @@ export default async function JobsPage() {
                       <h2 className="text-[18px] font-[700] text-brand-ink mb-[4px]">
                         {job.title}
                       </h2>
+                      <p className="text-[13px] text-brand-slate mb-[2px]">
+                        {job.company}
+                      </p>
                       <p className="text-[13px] text-brand-slate mb-[8px]">
                         {employerName}
                       </p>

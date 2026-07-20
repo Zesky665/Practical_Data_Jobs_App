@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.jobs (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   employer_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title       text NOT NULL,
+  company     text NOT NULL,
   description text NOT NULL,
   embedding   extensions.vector(1024),
   status      text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'closed')),
@@ -41,6 +42,7 @@ CREATE TABLE IF NOT EXISTS public.jobs (
 -- Fix columns if the table existed from an old schema
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS employer_id uuid;
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS company text;
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS description text;
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS embedding extensions.vector(1024);
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS status text;

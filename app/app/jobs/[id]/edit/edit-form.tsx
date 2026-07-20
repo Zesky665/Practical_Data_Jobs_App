@@ -8,6 +8,7 @@ import Link from "next/link";
 type Job = {
   id: string;
   title: string;
+  company: string;
   description: string;
   status: string;
   employer_id: string;
@@ -46,6 +47,7 @@ export function EditJobForm({ job }: { job: Job }) {
       <JobForm
         action={updateJob}
         defaultTitle={job.title}
+        defaultCompany={job.company}
         defaultDescription={job.description}
         hiddenFields={{ job_id: job.id }}
         submitLabel="Save changes"

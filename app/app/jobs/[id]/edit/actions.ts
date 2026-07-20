@@ -9,6 +9,7 @@ export type UpdateJobState = {
   error?: string;
   fieldErrors?: {
     title?: string;
+    company?: string;
     description?: string;
   };
 };
@@ -30,6 +31,7 @@ export async function updateJob(
 
   const id = formData.get("job_id") as string;
   const title = (formData.get("title") as string)?.trim() ?? "";
+  const company = (formData.get("company") as string)?.trim() ?? "";
   const description = (formData.get("description") as string)?.trim() ?? "";
 
   // Field-level validation
@@ -39,6 +41,12 @@ export async function updateJob(
     fieldErrors.title = "Job title is required.";
   } else if (title.length > 200) {
     fieldErrors.title = "Job title must be at most 200 characters.";
+  }
+
+  if (!company) {
+    fieldErrors.company = "Company name is required.";
+  } else if (company.length > 200) {
+    fieldErrors.company = "Company name must be at most 200 characters.";
   }
 
   if (!description) {
@@ -83,6 +91,7 @@ export async function updateJob(
 
   const updateData: Record<string, unknown> = {
     title,
+    company,
     description,
     updated_at: new Date().toISOString(),
   };

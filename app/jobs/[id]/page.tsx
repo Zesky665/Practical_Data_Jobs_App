@@ -29,6 +29,7 @@ export default async function JobDetailPage({
       `
       id,
       title,
+      company,
       description,
       status,
       employer_id,
@@ -191,6 +192,9 @@ export default async function JobDetailPage({
             <h1 className="text-[28px] font-[700] text-brand-ink mb-[8px]">
               {job.title}
             </h1>
+            <p className="text-[16px] font-[600] text-brand-blue-600 mb-[8px]">
+              {job.company}
+            </p>
             <div className="flex items-center gap-[12px] text-[14px] text-brand-slate flex-wrap">
               <span>{employerName}</span>
               <span aria-hidden="true">·</span>

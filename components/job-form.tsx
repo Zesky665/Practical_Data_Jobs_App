@@ -3,10 +3,11 @@
 import { useActionState, useState, useCallback } from "react";
 import Link from "next/link";
 
-export type JobFormState = {
+  export type JobFormState = {
   error?: string;
   fieldErrors?: {
     title?: string;
+    company?: string;
     description?: string;
   };
 };
@@ -17,6 +18,7 @@ type Props = {
     formData: FormData,
   ) => Promise<JobFormState>;
   defaultTitle?: string;
+  defaultCompany?: string;
   defaultDescription?: string;
   hiddenFields?: Record<string, string>;
   submitLabel: string;
@@ -27,6 +29,7 @@ type Props = {
 export function JobForm({
   action,
   defaultTitle = "",
+  defaultCompany = "",
   defaultDescription = "",
   hiddenFields,
   submitLabel,
@@ -39,6 +42,7 @@ export function JobForm({
   );
 
   const [title, setTitle] = useState(defaultTitle);
+  const [company, setCompany] = useState(defaultCompany);
   const [description, setDescription] = useState(defaultDescription);
 
   const titleRemaining = 200 - title.length;
@@ -118,6 +122,32 @@ export function JobForm({
           {state.fieldErrors?.title && (
             <p className="text-[12px] text-red-600 font-[500]" role="alert">
               {state.fieldErrors.title}
+            </p>
+          )}
+        </div>
+
+        {/* Company */}
+        <div className="space-y-[6px]">
+          <label
+            htmlFor="company"
+            className="text-[14px] font-[600] text-brand-ink"
+          >
+            Company name
+          </label>
+          <input
+            id="company"
+            name="company"
+            type="text"
+            required
+            maxLength={200}
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            placeholder="e.g. Practical Data Inc."
+            className="w-full px-[16px] py-[12px] rounded-[10px] border border-brand-line text-[15px] text-brand-ink placeholder:text-brand-slate-2 focus:outline-none focus:border-brand-blue-300 focus:ring-2 focus:ring-brand-blue-100 transition-all duration-200"
+          />
+          {state.fieldErrors?.company && (
+            <p className="text-[12px] text-red-600 font-[500]" role="alert">
+              {state.fieldErrors.company}
             </p>
           )}
         </div>

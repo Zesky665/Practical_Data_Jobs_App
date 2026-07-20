@@ -6,6 +6,7 @@ CREATE TABLE public.jobs (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   employer_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title       text NOT NULL,
+  company     text NOT NULL,
   description text NOT NULL,
   embedding   extensions.vector(1024),
   status      text NOT NULL DEFAULT 'draft'

@@ -9,6 +9,7 @@ export type CreateJobState = {
   error?: string;
   fieldErrors?: {
     title?: string;
+    company?: string;
     description?: string;
   };
 };
@@ -53,6 +54,7 @@ export async function createJob(
 
   // Validate fields
   const title = (formData.get("title") as string)?.trim() ?? "";
+  const company = (formData.get("company") as string)?.trim() ?? "";
   const description = (formData.get("description") as string)?.trim() ?? "";
 
   const fieldErrors: CreateJobState["fieldErrors"] = {};
@@ -61,6 +63,12 @@ export async function createJob(
     fieldErrors.title = "Job title is required.";
   } else if (title.length > 200) {
     fieldErrors.title = "Job title must be at most 200 characters.";
+  }
+
+  if (!company) {
+    fieldErrors.company = "Company name is required.";
+  } else if (company.length > 200) {
+    fieldErrors.company = "Company name must be at most 200 characters.";
   }
 
   if (!description) {
@@ -94,6 +102,7 @@ export async function createJob(
     .insert({
       employer_id: user.id,
       title,
+      company,
       description,
       embedding: embedding as unknown as string,
       status: "draft",
