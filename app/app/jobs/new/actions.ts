@@ -109,8 +109,11 @@ export async function createJob(
     .single();
 
   if (insertError || !job) {
-    console.error("[createJob] DB insert failed:", insertError);
-    return { error: "Failed to create the job posting. Please try again." };
+    console.error("[createJob] DB insert failed:", JSON.stringify(insertError));
+    const detail = insertError
+      ? `${insertError.message}${insertError.details ? ` (${insertError.details})` : ""}`
+      : "No job returned";
+    return { error: `Failed to create the job posting: ${detail}` };
   }
 
   revalidatePath("/app/jobs");
