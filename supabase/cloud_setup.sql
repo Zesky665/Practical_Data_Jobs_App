@@ -34,15 +34,14 @@ CREATE TABLE IF NOT EXISTS public.jobs (
   company     text NOT NULL,
   description text NOT NULL,
   embedding   extensions.vector(1024),
-  status      text NOT NULL DEFAULT 'draft',
+  status      text NOT NULL DEFAULT 'draft'
+              CHECK (status IN ('draft', 'public', 'closed')),
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
 
--- If the table already exists and has a different status CHECK constraint,
--- this ALTER is a no-op. The app does not hardcode valid statuses.
-ALTER TABLE public.jobs ALTER COLUMN status DROP DEFAULT;
-ALTER TABLE public.jobs ALTER COLUMN status SET DEFAULT 'draft';
+-- If the table already exists and had a different status CHECK constraint,
+-- run 0006_fix_jobs_status.sql to migrate it.
 
 -- Fix columns if the table existed from an old schema
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS employer_id uuid;
@@ -58,8 +57,10 @@ DROP POLICY IF EXISTS "jobs: owner CRUD" ON public.jobs;
 CREATE POLICY "jobs: owner CRUD" ON public.jobs
   FOR ALL USING (employer_id = auth.uid()) WITH CHECK (employer_id = auth.uid());
 DROP POLICY IF EXISTS "jobs: public read published" ON public.jobs;
-CREATE POLICY "jobs: public read open" ON public.jobs
-  FOR SELECT USING (status = 'open');
+DROP POLICY IF EXISTS "jobs: public read open" ON public.jobs;
+DROP POLICY IF EXISTS "jobs: public read public" ON public.jobs;
+CREATE POLICY "jobs: public read public" ON public.jobs
+  FOR SELECT USING (status = 'public');
 
 -- 5. Search functions
 CREATE OR REPLACE FUNCTION public.match_jobs_for_cv(
@@ -67,7 +68,7 @@ CREATE OR REPLACE FUNCTION public.match_jobs_for_cv(
 ) RETURNS TABLE (id uuid, similarity float) LANGUAGE plpgsql AS $$
 BEGIN
   RETURN QUERY SELECT jobs.id, 1 - (jobs.embedding <=> query_embedding) AS similarity
-  FROM public.jobs WHERE jobs.embedding IS NOT NULL AND jobs.status = 'open'
+  FROM public.jobs WHERE jobs.embedding IS NOT NULL AND jobs.status = 'public'
   ORDER BY jobs.embedding <=> query_embedding LIMIT match_limit;
 END; $$;
 

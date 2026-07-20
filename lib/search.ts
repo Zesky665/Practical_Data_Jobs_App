@@ -15,7 +15,7 @@ export interface ScoredResult {
 
 /**
  * Find jobs that match a given CV, ranked by cosine similarity.
- * Only returns open jobs.
+ * Only returns public jobs.
  */
 export async function searchJobsForCV(
   cvId: string,
@@ -35,7 +35,7 @@ export async function searchJobsForCV(
     return [];
   }
 
-  // Cosine similarity search against open jobs
+  // Cosine similarity search against public jobs
   // pgvector <=> operator is cosine distance; 1 - distance = similarity
   const { data, error } = await serviceClient.rpc("match_jobs_for_cv", {
     query_embedding: cv.embedding,

@@ -64,8 +64,8 @@ export function EditJobForm({ job }: { job: Job }) {
 
         <h2 className="text-[18px] font-[700] text-brand-ink">Status</h2>
         <p className="text-[13px] text-brand-slate">
-          Only admins can set a job to open. If you&apos;re not an admin, use
-          Close instead.
+          Draft is private. Public is live on the board. Closed means the
+          listing is no longer accepting applications.
         </p>
 
         <div className="flex items-center gap-[12px] flex-wrap">
@@ -76,19 +76,34 @@ export function EditJobForm({ job }: { job: Job }) {
             Current: {job.status}
           </span>
 
-          {/* Open */}
+          {/* Draft */}
           <button
             type="submit"
             name="status"
-            value="open"
-            disabled={statusPending || job.status === "open"}
+            value="draft"
+            disabled={statusPending || job.status === "draft"}
             className={`px-[20px] py-[10px] rounded-[8px] text-[14px] font-[600] border transition-colors duration-200 ${
-              job.status === "open"
+              job.status === "draft"
+                ? "bg-yellow-50 border-yellow-200 text-yellow-700 cursor-default"
+                : "bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100 disabled:opacity-50"
+            }`}
+          >
+            {job.status === "draft" ? "← Draft" : "Set draft"}
+          </button>
+
+          {/* Public */}
+          <button
+            type="submit"
+            name="status"
+            value="public"
+            disabled={statusPending || job.status === "public"}
+            className={`px-[20px] py-[10px] rounded-[8px] text-[14px] font-[600] border transition-colors duration-200 ${
+              job.status === "public"
                 ? "bg-green-50 border-green-200 text-green-700 cursor-default"
                 : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100 disabled:opacity-50"
             }`}
           >
-            {job.status === "open" ? "← Open" : "Open"}
+            {job.status === "public" ? "← Public" : "Publish"}
           </button>
 
           {/* Closed */}

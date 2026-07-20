@@ -13,7 +13,8 @@ CREATE TABLE public.jobs (
   company     text NOT NULL,
   description text NOT NULL,
   embedding   extensions.vector(1024),
-  status      text NOT NULL DEFAULT 'draft',
+  status      text NOT NULL DEFAULT 'draft'
+              CHECK (status IN ('draft', 'public', 'closed')),
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -28,9 +29,9 @@ CREATE POLICY "jobs: owner CRUD" ON public.jobs
   FOR ALL USING (employer_id = auth.uid())
   WITH CHECK (employer_id = auth.uid());
 
--- Anyone can read open jobs.
-CREATE POLICY "jobs: public read open" ON public.jobs
-  FOR SELECT USING (status = 'open');
+-- Anyone can read public jobs.
+CREATE POLICY "jobs: public read public" ON public.jobs
+  FOR SELECT USING (status = 'public');
 
 -- Grant table access to Supabase roles (not automatic in local dev).
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.jobs TO authenticated, service_role, anon;

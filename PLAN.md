@@ -493,7 +493,7 @@ pgvector is available on all Supabase Cloud plans.
 - Job descriptions are embedded at create/update time.
 - A job detail page shows top matching candidates (by similarity score).
 - A profile/CV page shows top matching jobs.
-- Public job listing page (paginated, published-only).
+- Public job listing page (paginated, public-status only).
 - `npm run check` is green locally; CI passes on push.
 - Works on both local dev and Vercel deploy.
 
@@ -541,16 +541,17 @@ CREATE TABLE public.jobs (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   employer_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title       text NOT NULL,
+  company     text NOT NULL,
   description text NOT NULL,
   embedding   extensions.vector(1024),
   status      text NOT NULL DEFAULT 'draft'
-              CHECK (status IN ('draft', 'published', 'closed')),
+              CHECK (status IN ('draft', 'public', 'closed')),
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
 
 COMMENT ON TABLE public.jobs IS
-  'Job postings. Only users with can_post_jobs=true can create.';
+  'Job postings. Statuses: draft (private), public (live on board), closed (archived).';
 
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 
@@ -558,8 +559,12 @@ CREATE POLICY "jobs: owner CRUD" ON public.jobs
   FOR ALL USING (employer_id = auth.uid())
   WITH CHECK (employer_id = auth.uid());
 
-CREATE POLICY "jobs: public read published" ON public.jobs
-  FOR SELECT USING (status = 'published');
+CREATE POLICY "jobs: public read public" ON public.jobs
+  FOR SELECT USING (status = 'public');
+
+-- Migration 0006: fix status model on remote DBs that were set up with
+-- the old open/closed model + admin trigger. Drops the trigger, updates
+-- the CHECK constraint, migrates 'open' rows to 'public'.
 ```
 
 ### 9.4 Milestones

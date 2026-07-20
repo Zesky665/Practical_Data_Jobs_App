@@ -95,7 +95,7 @@ export async function createJob(
     };
   }
 
-  // Insert — explicit status avoids the admin-only "open" default trigger
+  // Insert — always starts as draft
   const { data: job, error: insertError } = await supabase
     .from("jobs")
     .insert({
@@ -104,17 +104,14 @@ export async function createJob(
       company,
       description,
       embedding: embedding as unknown as string,
-      status: "closed",
+      status: "draft",
     })
     .select("id")
     .single();
 
   if (insertError || !job) {
     console.error("[createJob] DB insert failed:", JSON.stringify(insertError));
-    const detail = insertError
-      ? `${insertError.message}${insertError.details ? ` (${insertError.details})` : ""}`
-      : "No job returned";
-    return { error: `Failed to create the job posting: ${detail}` };
+    return { error: "Failed to create the job posting. Please try again." };
   }
 
   revalidatePath("/app/jobs");
