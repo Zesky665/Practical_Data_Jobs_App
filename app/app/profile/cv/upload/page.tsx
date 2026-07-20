@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useState } from "react";
 import { uploadCV, type UploadCVState } from "./actions";
 import Link from "next/link";
 
@@ -10,12 +10,6 @@ export default function CVUploadPage() {
     {},
   );
   const [fileName, setFileName] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    setFileName(file ? file.name : "");
-  };
 
   return (
     <div className="space-y-[32px]">
@@ -42,79 +36,35 @@ export default function CVUploadPage() {
 
       <form
         action={formAction}
+        encType="multipart/form-data"
         className="bg-brand-white rounded-[20px] border border-brand-line p-[40px] max-sm:p-[24px] space-y-[24px]"
       >
-        {/* Drop zone — labels the hidden file input */}
-        <label
-          className={`block border-2 border-dashed rounded-[14px] p-[48px] text-center cursor-pointer transition-colors duration-200 ${
-            fileName
-              ? "border-brand-blue-300 bg-brand-blue-50"
-              : "border-brand-line bg-brand-muted hover:border-brand-blue-200 hover:bg-brand-blue-50/50"
-          }`}
-        >
-          {fileName ? (
-            <div className="flex flex-col items-center gap-[8px]">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="40"
-                height="40"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-brand-blue-600"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-              </svg>
-              <span className="text-[15px] font-[600] text-brand-ink">
-                {fileName}
-              </span>
-              <span className="text-[13px] text-brand-slate">
-                PDF selected — click Upload to continue
-              </span>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-[10px]">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="40"
-                height="40"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-brand-slate-2"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              <span className="text-[15px] font-[600] text-brand-ink">
-                Click to browse or drop your PDF here
-              </span>
-              <span className="text-[13px] text-brand-slate">
-                PDF files only, up to 10 MB
-              </span>
-            </div>
-          )}
-
+        {/* File input */}
+        <div className="space-y-[6px]">
+          <label
+            htmlFor="file"
+            className="block text-[14px] font-[600] text-brand-ink"
+          >
+            Select your CV (PDF)
+          </label>
           <input
-            ref={fileInputRef}
+            id="file"
             type="file"
             name="file"
             accept=".pdf,application/pdf"
-            onChange={handleFileChange}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              setFileName(file ? file.name : "");
+            }}
             disabled={pending}
-            className="sr-only"
+            className="block w-full text-[14px] text-brand-slate file:mr-[16px] file:py-[10px] file:px-[20px] file:rounded-[8px] file:border-0 file:text-[14px] file:font-[600] file:bg-brand-blue-50 file:text-brand-blue-600 hover:file:bg-brand-blue-100 file:cursor-pointer file:transition-colors"
           />
-        </label>
+          {fileName && (
+            <p className="text-[13px] text-brand-blue-600 font-[500]">
+              Selected: {fileName}
+            </p>
+          )}
+        </div>
 
         {/* Guidelines */}
         <div className="bg-brand-muted rounded-[12px] p-[20px] space-y-[8px]">
