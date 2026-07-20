@@ -27,13 +27,9 @@ CREATE POLICY "cvs: owner CRUD" ON public.cvs
   FOR ALL USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
--- Storage bucket for raw CV files (PDFs).
--- Path convention: {userId}/{uuid}.pdf — first segment is the owner's UUID.
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('cvs', 'cvs', false)
-ON CONFLICT (id) DO NOTHING;
-
 -- RLS on storage: users can only access files under their own user-id prefix.
+-- Note: uploads use the service-role client (lib/supabase/service.ts) which
+-- bypasses RLS. This policy exists for future direct user access if needed.
 CREATE POLICY "cvs_storage: owner access"
 ON storage.objects
 FOR ALL
