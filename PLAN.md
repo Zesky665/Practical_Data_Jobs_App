@@ -741,7 +741,7 @@ Update `.env.example` with `VOYAGE_API_KEY=` placeholder.
 
 | Package | Purpose |
 |---------|---------|
-| `pdfjs-dist` | Extract text from PDF files (server-side, legacy build) |
+| `pdf2json` | Extract text from PDF files (server-side, no worker) |
 
 ### 9.7 New files (target)
 
