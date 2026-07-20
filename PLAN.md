@@ -167,7 +167,7 @@ the next phase until the previous one is green and committed.
 | **CV + Jobs + Search (M4–M7)** | | |
 | M4 Profiles extension | ✅ Done | can_post_jobs, display_name, bio, profile page |
 | M5 CV upload + embedding | ✅ Done | PDF upload, text extraction, Voyage embed, pgvector |
-| M6 Job postings + embedding | ⬜ Todo | CRUD for can_post_jobs users, Voyage embed |
+| M6 Job postings + embedding | ✅ Done | CRUD for can_post_jobs users, Voyage embed |
 | M7 Semantic search | ⬜ Todo | Bidirectional: jobs→CVs and CVs→jobs via pgvector |
 
 ---
