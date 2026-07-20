@@ -42,7 +42,9 @@ export async function updatePassword(
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    return { error: "We couldn't update your password. Please try again." };
+    // Surface the actual Supabase message (e.g. "New password should be
+    // different from the old password") instead of a generic fallback.
+    return { error: error.message };
   }
 
   revalidatePath("/", "layout");
