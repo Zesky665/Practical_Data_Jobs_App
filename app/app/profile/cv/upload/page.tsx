@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { uploadCV, type UploadCVState } from "./actions";
 import Link from "next/link";
 
@@ -10,6 +10,12 @@ export default function CVUploadPage() {
     {},
   );
   const [fileName, setFileName] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setFileName(file ? file.name : "");
+  };
 
   return (
     <div className="space-y-[32px]">
@@ -38,9 +44,9 @@ export default function CVUploadPage() {
         action={formAction}
         className="bg-brand-white rounded-[20px] border border-brand-line p-[40px] max-sm:p-[24px] space-y-[24px]"
       >
-        {/* File drop zone */}
-        <div
-          className={`border-2 border-dashed rounded-[14px] p-[48px] text-center transition-colors duration-200 ${
+        {/* Drop zone — labels the hidden file input */}
+        <label
+          className={`block border-2 border-dashed rounded-[14px] p-[48px] text-center cursor-pointer transition-colors duration-200 ${
             fileName
               ? "border-brand-blue-300 bg-brand-blue-50"
               : "border-brand-line bg-brand-muted hover:border-brand-blue-200 hover:bg-brand-blue-50/50"
@@ -91,7 +97,7 @@ export default function CVUploadPage() {
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
               <span className="text-[15px] font-[600] text-brand-ink">
-                Drop your PDF here or click to browse
+                Click to browse or drop your PDF here
               </span>
               <span className="text-[13px] text-brand-slate">
                 PDF files only, up to 10 MB
@@ -100,33 +106,15 @@ export default function CVUploadPage() {
           )}
 
           <input
+            ref={fileInputRef}
             type="file"
             name="file"
             accept=".pdf,application/pdf"
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              setFileName(file ? file.name : "");
-            }}
+            onChange={handleFileChange}
             disabled={pending}
-            style={{ display: "none" }}
+            className="sr-only"
           />
-        </div>
-
-        {/* File input (visible) */}
-        <div className="relative">
-          <input
-            type="file"
-            name="file"
-            accept=".pdf,application/pdf"
-            className="block w-full text-[14px] text-brand-slate file:mr-[16px] file:py-[10px] file:px-[20px] file:rounded-[8px] file:border-0 file:text-[14px] file:font-[600] file:bg-brand-blue-50 file:text-brand-blue-600 hover:file:bg-brand-blue-100 file:cursor-pointer file:transition-colors"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              setFileName(file ? file.name : "");
-            }}
-            disabled={pending}
-          />
-        </div>
+        </label>
 
         {/* Guidelines */}
         <div className="bg-brand-muted rounded-[12px] p-[20px] space-y-[8px]">

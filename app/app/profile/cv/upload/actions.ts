@@ -51,16 +51,23 @@ export async function uploadCV(
     return { error: "Only PDF files are supported. Please upload a .pdf file." };
   }
 
-  // 2. Extract text from PDF
+  // 2. Extract text from PDF using pdfjs-dist
   let rawText: string;
   try {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    // pdf-parse v2: create parser, getText() implicitly loads and returns text
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse(uint8Array);
-    const result = await parser.getText();
-    rawText = result.text;
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const doc = await pdfjs.getDocument({ data: uint8Array }).promise;
+    const parts: string[] = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .map((item) => ("str" in item ? item.str : ""))
+        .join(" ");
+      parts.push(pageText);
+    }
+    rawText = parts.join("\n\n");
   } catch (err) {
     console.error("[uploadCV] PDF extraction failed:", err);
     return {
