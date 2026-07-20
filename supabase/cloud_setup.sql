@@ -1,5 +1,5 @@
 -- Practical Data Jobs App — Cloud database setup
--- Run this in Supabase Dashboard → SQL Editor (https://supabase.com/dashboard/project/tdkzxdvuhxpdbppwzbif)
+-- Run this in Supabase Dashboard → SQL Editor
 
 -- 1. Vector extension
 CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS public.cvs (
   updated_at        timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.cvs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "cvs: owner CRUD" ON public.cvs
+DROP POLICY IF EXISTS "cvs: owner CRUD" ON public.cvs;
+CREATE POLICY "cvs: owner CRUD" ON public.cvs
   FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- 4. Jobs table
@@ -37,9 +38,11 @@ CREATE TABLE IF NOT EXISTS public.jobs (
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "jobs: owner CRUD" ON public.jobs
+DROP POLICY IF EXISTS "jobs: owner CRUD" ON public.jobs;
+CREATE POLICY "jobs: owner CRUD" ON public.jobs
   FOR ALL USING (employer_id = auth.uid()) WITH CHECK (employer_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "jobs: public read published" ON public.jobs
+DROP POLICY IF EXISTS "jobs: public read published" ON public.jobs;
+CREATE POLICY "jobs: public read published" ON public.jobs
   FOR SELECT USING (status = 'published');
 
 -- 5. Search functions
@@ -62,7 +65,8 @@ BEGIN
 END; $$;
 
 -- 6. Storage RLS for cvs bucket
-CREATE POLICY IF NOT EXISTS "cvs: owner folder access"
+DROP POLICY IF EXISTS "cvs: owner folder access" ON storage.objects;
+CREATE POLICY "cvs: owner folder access"
 ON storage.objects
 FOR ALL
 USING (bucket_id = 'cvs' AND (storage.foldername(name))[1] = auth.uid()::text)
