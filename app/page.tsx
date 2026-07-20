@@ -75,28 +75,24 @@ export default async function Home({
 }: {
   searchParams: Promise<{ error?: string; error_code?: string; error_description?: string; code?: string; type?: string }>;
 }) {
-  // Handle auth error callbacks from Supabase (e.g., expired reset-password
-  // links, OAuth failures). Supabase redirects to the Site URL with ?error=…
-  // when a flow fails, so we surface it here rather than silently ignoring it.
   const sp = await searchParams;
+
+  // Handle any auth code (signup confirmation, password reset, OAuth).
+  // exchangeCodeForSession works for all Supabase PKCE flows — no need to
+  // guess whether it's signup or recovery.
+  if (sp.code && hasEnvVars) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(sp.code);
+    if (!error) {
+      return redirect("/app");
+    }
+    // Code exchange failed — fall through to render the error banner
+  }
+
+  // Auth error from Supabase (expired links, OAuth failures).
   const authError = sp.error_description ?? sp.error;
 
-  // Fallback for password reset: if Supabase redirects here with a PKCE code
-  // (the redirectTo URL wasn't honored — see forgot-password/actions.ts).
-  // Only redirect if the path includes a recovery indication.
-  if (sp.code && sp.type !== "signup") {
-    return redirect("/auth/update-password");
-  }
-
-  // Handle signup confirmation: if the callback route wasn't deployed yet,
-  // Supabase may redirect here with a code from email confirmation.
-  if (sp.code && sp.type === "signup") {
-    return redirect("/app");
-  }
-
-  // Server-side auth check. Use getUser() (PLAN.md §0 convention #5) —
-  // getSession() trusts the cookie without re-validation. Fall back to logged-out
-  // when env vars aren't configured yet (fresh clone before `supabase start`).
+  // Server-side auth check for adaptive header CTA.
   let signedIn = false;
   if (hasEnvVars) {
     const supabase = await createClient();
