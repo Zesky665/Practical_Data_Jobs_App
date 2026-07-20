@@ -56,7 +56,20 @@ export async function uploadCV(
   try {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    // Polyfill Promise.withResolvers (Node 20 doesn't have it; pdfjs-dist v4 needs it)
+    if (!(Promise as unknown as { withResolvers?: unknown }).withResolvers) {
+      (Promise as unknown as Record<string, unknown>).withResolvers = function <T>() {
+        let resolve!: (value: T | PromiseLike<T>) => void;
+        let reject!: (reason?: unknown) => void;
+        const promise = new Promise<T>((res, rej) => {
+          resolve = res;
+          reject = rej;
+        });
+        return { promise, resolve, reject };
+      };
+    }
+
+    const pdfjs = await import("pdfjs-dist");
     const doc = await pdfjs.getDocument({ data: uint8Array }).promise;
     const parts: string[] = [];
     for (let i = 1; i <= doc.numPages; i++) {
