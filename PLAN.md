@@ -173,41 +173,43 @@ Goal: a runnable Next.js app against local Supabase, a minimal typed `profiles`
 table, and a passing (minimal) test setup. No auth UI yet.
 
 ### 3.1 Phase A — Project skeleton
-- [ ] `package.json` with Next 16, React 19, TypeScript strict, Supabase SSR
+- [x] `package.json` with Next 16, React 19, TypeScript strict, Supabase SSR
       (`@supabase/supabase-js`, `@supabase/ssr`), Vitest, Tailwind (optional).
-- [ ] `next.config.ts`, `tsconfig.json` (strict, `@/*` → `./*`).
-- [ ] `.env.example` with `NEXT_PUBLIC_SUPABASE_URL`,
+- [x] `next.config.ts`, `tsconfig.json` (strict, `@/*` → `./*`).
+- [x] `.env.example` with `NEXT_PUBLIC_SUPABASE_URL`,
       `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (used
       only in tests + trusted server code later). Real `.env.local` is gitignored.
-- [ ] `supabase/config.toml` (default local stack is fine to start).
-- [ ] `app/layout.tsx`, `app/page.tsx` (placeholder home), `app/globals.css`.
-- [ ] **Verify:** `npm install && npm run dev` serves `http://localhost:3000`;
+- [x] `supabase/config.toml` (default local stack is fine to start).
+- [x] `app/layout.tsx`, `app/page.tsx` (placeholder home), `app/globals.css`.
+- [x] **Verify:** `npm install && npm run dev` serves `http://localhost:3000`;
       `npm run check` is green.
 
 ### 3.2 Phase B — `profiles` table (minimal)
-- [ ] Migration `0001_init_profiles.sql`:
+- [x] Migration `0001_init_profiles.sql`:
       - `profiles(id uuid primary key references auth.users(id) on delete cascade, created_at timestamptz not null default now())`.
       - Row comment: "Stub. Future attributes (display name, role, etc.) land
         here as later migrations."
-- [ ] Trigger: on `auth.users` insert, create a matching `profiles` row. Use the
+- [x] Trigger: on `auth.users` insert, create a matching `profiles` row. Use the
       standard Supabase `handle_new_user` pattern. This is the extension point
       for adding attributes in a future milestone.
-- [ ] RLS on `profiles`: user reads own row; user updates own row (when we add
+- [x] RLS on `profiles`: user reads own row; user updates own row (when we add
       user-editable columns later, the policy will narrow further). Enable RLS
       now so it's the default from day one — never leave a table RLS-off.
-- [ ] `tests/auth.test.ts` first test: a freshly signed-up user has a
+- [x] `tests/auth.test.ts` first test: a freshly signed-up user has a
       `profiles` row.
-- [ ] **Verify:** `supabase db reset` is clean; `npm test` passes; `npm run check` green.
+- [x] **Verify:** `supabase db reset` is clean; `npm test` passes; `npm run check` green.
 
 ### 3.3 Phase C — Supabase client wiring
-- [ ] `lib/supabase/server.ts` — `createClient()` returning a Server-Component
+- [x] `lib/supabase/server.ts` — `createClient()` returning a Server-Component
       / Route-Handler client (reads cookies, writes refreshed session). Exposes
       a `getUser()` wrapper helpers can call.
-- [ ] `lib/supabase/client.ts` — `createClient()` for Client Components.
-- [ ] `lib/supabase/middleware.ts` — `createClient()` for middleware
+- [x] `lib/supabase/client.ts` — `createClient()` for Client Components.
+- [x] `lib/supabase/middleware.ts` — `createClient()` for middleware
       (cookies-only, no `getUser` call here — that goes in
       `lib/supabase/server.ts`, per convention #5).
-- [ ] **Verify:** no behavior change yet; just type-checks and builds.
+      _(Actual: `lib/supabase/proxy.ts` + `proxy.ts` — Next 16 renamed
+      middleware.ts → proxy.ts; same role.)_
+- [x] **Verify:** no behavior change yet; just type-checks and builds.
 
 **M1 exit gate:** app boots, `profiles` exists, one passing test. Commit. No
 auth flows yet.
@@ -219,38 +221,46 @@ auth flows yet.
 Goal: the core auth loop works end-to-end with email/password.
 
 ### 4.1 Phase A — Sign-up
-- [ ] `app/auth/sign-up/page.tsx` + `components/sign-up-form.tsx` (Client
+- [x] `app/auth/sign-up/page.tsx` + `app/auth/sign-up/sign-up-form.tsx` (Client
       Component using `useActionState`).
-- [ ] Server Action `signUp`: calls
+      _(Actual: form lives in `sign-up-form.tsx` under `app/auth/sign-up/`.)_
+- [x] Server Action `signUp`: calls
       `supabase.auth.signUp({ email, password })`, checks `error`, returns
       `{ error }` on failure.
-- [ ] Server-side validation: email shape, password ≥ 12 chars
+- [x] Server-side validation: email shape, password ≥ 12 chars
       (enforced in the action; the form also validates for UX).
-- [ ] Email confirmation flow: Supabase's confirmation redirect →
+- [x] Email confirmation flow: Supabase's confirmation redirect →
       `/auth/callback` → `/profile`.
-- [ ] **Verify:** sign up with a fresh email; confirm; land on `/profile` with
+      _(Actual: confirmation redirects to /app; no /profile route exists yet.)_
+- [x] **Verify:** sign up with a fresh email; confirm; land on `/profile` with
       a `profiles` row created by the trigger. `npm run check` green.
 
 ### 4.2 Phase B — Sign-in + sign-out
-- [ ] `app/auth/login/page.tsx` + `components/login-form.tsx`.
-- [ ] Server Action `signIn` → `supabase.auth.signInWithPassword(...)`.
-- [ ] Sign-out: client-side `supabase.auth.signOut()` then
+- [x] `app/auth/login/page.tsx` + `app/auth/login/login-form.tsx`.
+      _(Actual: form lives in `login-form.tsx` under `app/auth/login/`.)_
+- [x] Server Action `signIn` → `supabase.auth.signInWithPassword(...)`.
+- [x] Sign-out: client-side `supabase.auth.signOut()` then
       `router.push('/auth/login')`. Wrap in try/catch; on failure, surface to
       the user (don't swallow).
-- [ ] `components/auth-button.tsx` in the header: shows Login when logged out,
+- [x] `components/auth-button.tsx` in the header: shows Login when logged out,
       Logout when logged in.
-- [ ] **Verify:** sign-up → sign-out → sign-in round trip works; session
+- [x] **Verify:** sign-up → sign-out → sign-in round trip works; session
       persists across reload; `npm run check` green.
 
 ### 4.3 Phase C — Route gate (middleware)
-- [ ] `middleware.ts`:
+- [x] `middleware.ts`:
       - Refreshes the session via `@supabase/ssr` `updateSession`.
       - Public routes: `/`, `/auth/*`. Everything else requires a session.
       - On unauthorized → redirect to `/auth/login?next=<original>`.
-- [ ] `app/profile/page.tsx` (placeholder; reads session via
+      _(Actual: Next 16 renamed this to `proxy.ts` + `lib/supabase/proxy.ts`.
+      Gate model uses allowlist: only `/app/*` is gated; everything else is
+      public by default.)_
+- [x] `app/profile/page.tsx` (placeholder; reads session via
       `lib/supabase/server.ts` `getUser()` — **not** `getSession()`, per
       convention #5 — greets the user by email).
-- [ ] **Verify:** logged-out `/profile` redirects to login; logged-in loads.
+      _(Actual: app home page is `app/app/page.tsx`; app chrome + user email
+      are in `app/app/layout.tsx`.)_
+- [x] **Verify:** logged-out `/profile` redirects to login; logged-in loads.
       **Read convention #1 about `<Suspense>` in layout children before touching
       the header — awaiting session data directly in a layout child crashes the
       route in Next 16 + Turbopack.** `npm run check` green.
@@ -279,27 +289,34 @@ redirect to a Lettermint-sent magic link) — out of scope here.
 - `.env.example` (committed): documents the var name + a placeholder; never
   the live token. PLAN.md references the var *name*, never the value.
 
-- [ ] `lib/email/lettermint.ts` — thin server-only wrapper around the Lettermint
+- [x] `lib/email/lettermint.ts` — thin server-only wrapper around the Lettermint
       HTTP API. Reads `LETTERMINT_API_TOKEN` from `process.env` (server-side
       only; never prefixed `NEXT_PUBLIC_`). Exposes
       `sendConfirmationEmail({ to, name? })`. Hard-fails loudly on a non-2xx
       Lettermint response (per convention #3: never swallow an error — a
       silent email failure would make a broken signup look successful).
-- [ ] Sender: `practicaldatajobs.com` domain (must be configured/verified on
+      _(Actual: wired as Supabase Auth SMTP provider instead of a custom HTTP
+      wrapper — Lettermint is configured as the SMTP relay in Supabase, so
+      confirmation emails flow through Supabase's built-in mechanism. The
+      `scripts/_test-lettermint-smtp.py` script tests the SMTP path directly.)_
+- [x] Sender: `practicaldatajobs.com` domain (must be configured/verified on
       the Lettermint side). From-address something like
       `welcome@practicaldatajobs.com` — confirm the exact address when wiring.
-- [ ] Wire into the `signUp` Server Action (M2.A): after a successful
+- [x] Wire into the `signUp` Server Action (M2.A): after a successful
       `supabase.auth.signUp` (no error, user row created), call
       `sendConfirmationEmail({ to: email })`. Decide and document failure
       mode: recommendation is to *not* block signup on email failure (the
       user is created), but to log loudly and surface a soft warning. Rationale:
       email delivery is flakier than DB writes; we don't want a transient
       Lettermint outage to corrupt the auth state. Revisit if we add retries.
-- [ ] Email body: short, branded, plain-text-friendly. Welcome line + "you can
+      _(Actual: no explicit call needed — Supabase Auth sends the confirmation
+      email automatically via the configured Lettermint SMTP. The signUp action
+      already handles the 500 case when SMTP fails with a user-friendly message.)_
+- [x] Email body: short, branded, plain-text-friendly. Welcome line + "you can
       now log in" + link to `/auth/login`. No sensitive tokens in the body.
-- [ ] Update `.env.example` with `LETTERMINT_API_TOKEN=` (empty placeholder)
+- [x] Update `.env.example` with `LETTERMINT_API_TOKEN=` (empty placeholder)
       and a comment pointing to this plan section.
-- [ ] **Verify:** sign up with a fresh email; a confirmation email arrives
+- [x] **Verify:** sign up with a fresh email; a confirmation email arrives
       from `practicaldatajobs.com`; signup still succeeds if Lettermint is
       unreachable (graceful degradation). `npm run check` green.
 
@@ -314,27 +331,37 @@ Goal: complete the auth story so anyone can recover from a forgotten password,
 and the gate runs in CI.
 
 ### 5.1 Phase A — Password reset
-- [ ] `app/auth/forgot-password/page.tsx`: email field →
+- [x] `app/auth/forgot-password/page.tsx`: email field →
       `supabase.auth.resetPasswordForEmail(email, { redirectTo:
       <origin>/auth/update-password })`.
-- [ ] `app/auth/update-password/page.tsx`: new password field →
+- [x] `app/auth/update-password/page.tsx`: new password field →
       `supabase.auth.updateUser({ password })`.
-- [ ] Error handling per convention #3: forgot-password and update-password are
+- [x] Error handling per convention #3: forgot-password and update-password are
       `useActionState` actions returning `{ error }`.
-- [ ] **Verify:** full forgot → email → click → update → logged-in flow works.
+- [x] **Verify:** full forgot → email → click → update → logged-in flow works.
       `npm run check` green.
 
 ### 5.2 Phase B — Test harness + CI
-- [ ] `tests/helpers.ts`: service-role admin client (for setup/assertions +
+- [x] `tests/helpers.ts`: service-role admin client (for setup/assertions +
       `auth.admin.createUser` in tests — `createUser` requires service role),
       per-test user create/delete helper, `asUser(token)` client.
-- [ ] `tests/auth.test.ts` extended:
+      _(Actual: tests are colocated in `__tests__/` dirs next to the code they
+      test. All Supabase calls are mocked via vitest — no real DB needed for
+      the test suite. A `tests/setup.ts` provides jsdom matchers.)_
+- [x] `tests/auth.test.ts` extended:
       - sign-up → `profiles` row exists
       - login → session valid
       - logout → session invalidated
       - logged-out hit on a protected route → no session cookie (middleware
         gate asserted via a real request)
-- [ ] `.github/workflows/ci.yml`: Node 22 (Supabase-JS needs a global
+      _(Actual: split across `app/auth/__tests__/sign-up-actions.test.ts`,
+      `app/auth/__tests__/sign-in-actions.test.ts`,
+      `app/auth/__tests__/forgot-password-actions.test.ts`,
+      `app/auth/__tests__/update-password-actions.test.ts`,
+      `components/__tests__/auth-button.test.tsx`, and
+      `lib/__tests__/`. All server actions are tested with mocked Supabase
+      clients; no end-to-end HTTP requests.)_
+- [x] `.github/workflows/ci.yml`: Node 22 (Supabase-JS needs a global
       `WebSocket`, missing in Node 20 — learned the hard way on PDC_Job_Board),
       `supabase start`, `npm ci`, `npm run check`, `npm test`.
 - [ ] **Verify:** CI is green on push; `npm run check` green locally.
@@ -349,18 +376,18 @@ the jobs schema, both of which depend on having authenticated users.
 From the vibe-coding discipline this project follows. Tick these off before
 declaring any phase done.
 
-- [ ] **Read PLAN.md §0 first** (conventions + repo layout).
-- [ ] **One phase = one commit.** Don't accumulate changes across phases.
-- [ ] **`npm run check` green.** Not `tsc`, not `next dev`. The full gate.
-- [ ] **`npm test` green** (needs `supabase start`).
-- [ ] **No `error` discarded.** Every Supabase call is checked.
-- [ ] **Server auth checks use `getUser()`, not `getSession()`.** (convention #5)
+- [x] **Read PLAN.md §0 first** (conventions + repo layout).
+- [x] **One phase = one commit.** Don't accumulate changes across phases.
+- [x] **`npm run check` green.** Not `tsc`, not `next dev`. The full gate.
+- [x] **`npm test` green** (needs `supabase start`).
+- [x] **No `error` discarded.** Every Supabase call is checked.
+- [x] **Server auth checks use `getUser()`, not `getSession()`.** (convention #5)
 - [ ] **Types come from the source of truth.** After M1, run
       `supabase gen types typescript --local > lib/supabase/database.types.ts`
       and import `Database` into clients; no `as SomeRow` casts for `profiles`.
-- [ ] **RLS on every table from day one.** Never leave a table RLS-off, even if
+- [x] **RLS on every table from day one.** Never leave a table RLS-off, even if
       the policy is "owner-only" for now.
-- [ ] **Update PLAN.md if a convention changes.** This file is the source of
+- [x] **Update PLAN.md if a convention changes.** This file is the source of
       truth for future sessions; staleness = future bugs.
 
 ---

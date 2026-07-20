@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - run: npm ci
+
+      - name: Start Supabase local stack
+        run: supabase start
+
+      - name: Export Supabase env vars
+        run: |
+          STATUS=$(supabase status)
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(echo "$STATUS" | awk '/anon key:/{print $3}')" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS" | awk '/service_role key:/{print $3}')" >> "$GITHUB_ENV"
+
+      - name: Check
+        run: npm run check
