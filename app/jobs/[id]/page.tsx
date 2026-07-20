@@ -71,6 +71,7 @@ export default async function JobDetailPage({
           "@/lib/supabase/service"
         );
         const serviceClient = createServiceClient();
+        if (!serviceClient) return; // skip match display without service role
         const { data: cvs } = await serviceClient
           .from("cvs")
           .select("id, original_filename")

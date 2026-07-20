@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { embedText } from "@/lib/voyage";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -94,7 +95,10 @@ export async function uploadCV(
   const storagePath = `${user.id}/${cvId}.pdf`;
 
   try {
-    const { error: uploadError } = await supabase.storage
+    // Prefer service-role client (bypasses RLS, works on both local and cloud).
+    // Falls back to user client if SUPABASE_SERVICE_ROLE_KEY isn't configured.
+    const storageClient = createServiceClient() ?? supabase;
+    const { error: uploadError } = await storageClient.storage
       .from("cvs")
       .upload(storagePath, pdfBuffer, {
         contentType: "application/pdf",

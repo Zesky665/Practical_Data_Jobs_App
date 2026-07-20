@@ -22,6 +22,7 @@ export async function searchJobsForCV(
   limit = 10,
 ): Promise<ScoredResult[]> {
   const serviceClient = createServiceClient();
+  if (!serviceClient) return []; // search unavailable without service role
 
   // Fetch the CV embedding
   const { data: cv } = await serviceClient
@@ -57,6 +58,7 @@ export async function searchCVsForJob(
   limit = 10,
 ): Promise<ScoredResult[]> {
   const serviceClient = createServiceClient();
+  if (!serviceClient) return []; // search unavailable without service role
 
   // Fetch the job embedding
   const { data: job } = await serviceClient

@@ -21,10 +21,7 @@ export function createServiceClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. " +
-        "These are required for service-role operations.",
-    );
+    return null; // not configured — caller should fall back to user client
   }
 
   return createClient(url, key, {
