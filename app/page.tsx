@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { hasEnvVars } from "@/lib/utils";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
 /**
@@ -72,13 +73,21 @@ const categories: Category[] = [
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; error_code?: string; error_description?: string }>;
+  searchParams: Promise<{ error?: string; error_code?: string; error_description?: string; code?: string }>;
 }) {
   // Handle auth error callbacks from Supabase (e.g., expired reset-password
   // links, OAuth failures). Supabase redirects to the Site URL with ?error=…
   // when a flow fails, so we surface it here rather than silently ignoring it.
   const sp = await searchParams;
   const authError = sp.error_description ?? sp.error;
+
+  // Fallback: if Supabase redirects here with a PKCE code (the redirectTo
+  // URL wasn't honored — see forgot-password/actions.ts), the middleware has
+  // already exchanged it for a session. Redirect to update-password so the
+  // user can set a new password.
+  if (sp.code) {
+    return redirect("/auth/update-password");
+  }
 
   // Server-side auth check. Use getUser() (PLAN.md §0 convention #5) —
   // getSession() trusts the cookie without re-validation. Fall back to logged-out
