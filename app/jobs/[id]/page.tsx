@@ -26,19 +26,7 @@ export default async function JobDetailPage({
   const { data: job } = await supabase
     .from("jobs")
     .select(
-      `
-      id,
-      title,
-      company,
-      description,
-      status,
-      employer_id,
-      created_at,
-      updated_at,
-      employer:profiles (
-        display_name
-      )
-    `,
+      "id, title, company, description, status, employer_id, created_at, updated_at",
     )
     .eq("id", id)
     .single();
@@ -56,9 +44,7 @@ export default async function JobDetailPage({
     return notFound();
   }
 
-  const employerName =
-    (job.employer as unknown as { display_name: string | null }[])
-      ?.[0]?.display_name ?? "Anonymous employer";
+  const employerName = job.company;
 
   // Search for matching candidates (owner only)
   let matchingCandidates: {

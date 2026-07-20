@@ -10,18 +10,7 @@ export default async function JobsPage() {
 
   const { data: jobs } = await supabase
     .from("jobs")
-    .select(
-      `
-      id,
-      title,
-      company,
-      description,
-      created_at,
-      employer:profiles (
-        display_name
-      )
-    `,
-    )
+    .select("id, title, company, description, created_at")
     .eq("status", "public")
     .order("created_at", { ascending: false })
     .limit(50);
@@ -71,10 +60,6 @@ export default async function JobsPage() {
         {jobs && jobs.length > 0 ? (
           <div className="space-y-[16px]">
             {jobs.map((job) => {
-              const employerName =
-                (job.employer as unknown as { display_name: string | null }[])
-                  ?.[0]?.display_name ?? "Anonymous employer";
-
               return (
                 <Link
                   key={job.id}
@@ -88,9 +73,6 @@ export default async function JobsPage() {
                       </h2>
                       <p className="text-[13px] text-brand-slate mb-[2px]">
                         {job.company}
-                      </p>
-                      <p className="text-[13px] text-brand-slate mb-[8px]">
-                        {employerName}
                       </p>
                       <p className="text-[14px] text-brand-ink-soft leading-[1.5] line-clamp-2">
                         {job.description.slice(0, 300)}
