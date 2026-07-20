@@ -8,8 +8,9 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run build",
-    "test": "vitest run"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "test": "vitest run",
+    "vercel-build": "npm run lint && npm run typecheck && npm test && next build"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
