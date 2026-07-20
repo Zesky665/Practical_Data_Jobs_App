@@ -1,11 +1,20 @@
+import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "./login-form";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
+  // If already signed in (e.g. just confirmed email), skip to app
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (data.user) {
+    return redirect("/app");
+  }
+
   const { next } = await searchParams;
   // Only accept relative next-URLs (the action also validates).
   const safeNext = next && next.startsWith("/") ? next : "/app";

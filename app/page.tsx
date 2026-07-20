@@ -84,7 +84,7 @@ export default async function Home({
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(sp.code);
     if (!error) {
-      return redirect("/app");
+      return redirect("/auth/login");
     }
     // Code exchange failed — fall through to render the error banner
   }
