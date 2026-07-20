@@ -25,7 +25,7 @@ export default async function JobDetailPage({
   const { data: job } = await supabase
     .from("jobs")
     .select(
-      "id, title, company, description, status, employer_id, created_at, updated_at",
+      "id, title, description, status, employer_id, created_at, updated_at",
     )
     .eq("id", id)
     .single();
@@ -126,9 +126,6 @@ export default async function JobDetailPage({
             <h1 className="text-[28px] font-[700] text-brand-ink mb-[8px]">
               {job.title}
             </h1>
-            <p className="text-[16px] font-[600] text-brand-blue-600 mb-[8px]">
-              {job.company}
-            </p>
             <div className="flex items-center gap-[12px] text-[14px] text-brand-slate flex-wrap">
               <span>
                 Posted{" "}
