@@ -17,7 +17,7 @@ export default async function JobsPage() {
       company,
       description,
       created_at,
-      employer:profiles!jobs_employer_id_fkey (
+      employer:profiles (
         display_name
       )
     `,

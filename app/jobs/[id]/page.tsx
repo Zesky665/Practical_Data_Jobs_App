@@ -35,7 +35,7 @@ export default async function JobDetailPage({
       employer_id,
       created_at,
       updated_at,
-      employer:profiles!jobs_employer_id_fkey (
+      employer:profiles (
         display_name
       )
     `,
