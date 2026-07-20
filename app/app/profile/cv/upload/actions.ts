@@ -124,10 +124,10 @@ export async function uploadCV(
     const result = await embedText(rawText);
     embedding = result.vector;
   } catch (err) {
-    console.error("[uploadCV] Voyage embedding failed:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[uploadCV] Voyage embedding failed:", message);
     return {
-      error:
-        "Failed to analyze your CV. The file was saved but search won't work until we can process it. Please try again or contact support.",
+      error: `Failed to analyze your CV: ${message}`,
     };
   }
 
