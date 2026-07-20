@@ -24,6 +24,12 @@ export default async function AppHome() {
       </p>
       <div className="mt-[28px] flex flex-wrap gap-[12px]">
         <Link
+          href="/app/profile"
+          className="text-[14px] text-brand-blue-600 hover:underline"
+        >
+          View profile →
+        </Link>
+        <Link
           href="/"
           className="text-[14px] text-brand-blue-600 hover:underline"
         >

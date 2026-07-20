@@ -1,9 +1,8 @@
 # Practical_Data_Jobs_App — Development Plan
 
-Scope of this document: **authentication only.** All other features (jobs,
-resumes, matching, employer flows, admin moderation, roles, etc.) are
-explicitly out of scope for now and will get their own plan sections when we
-get to them.
+Scope of this document: **authentication** (complete) + **CV upload, jobs, and
+semantic search** (current). All other features (resumes with richer metadata,
+employer self-serve onboarding, admin moderation, Discord OAuth) are deferred.
 
 This plan follows the vibe-coding-for-larger-projects discipline used on the
 sister project `PDC_Job_Board`: a context file the AI reads every session,
@@ -154,6 +153,7 @@ the next phase until the previous one is green and committed.
 
 | Phase | Status | Notes |
 |-------|--------|-------|
+| **Auth (M1–M3)** | | |
 | M1.A Skeleton | ✅ Done | Next 16, TS strict, Tailwind 3, Supabase SSR |
 | M1.B profiles table | ✅ Done | Minimal stub (id + created_at) + handle_new_user trigger |
 | M1.C Supabase clients | ✅ Done | server/client/proxy (proxy.ts, Next 16 naming) |
@@ -164,6 +164,11 @@ the next phase until the previous one is green and committed.
 | M2.D Sign-up confirmation email (Lettermint) | ✅ Done | practicaldatajobs.com domain; token in `.env.local` as `LETTERMINT_API_TOKEN` |
 | M3.A Password reset | ✅ Done | |
 | M3.B Test harness + CI | ✅ Done  | |
+| **CV + Jobs + Search (M4–M7)** | | |
+| M4 Profiles extension | ✅ Done | can_post_jobs, display_name, bio, profile page |
+| M5 CV upload + embedding | ⬜ Todo | PDF upload, text extraction, Voyage embed, pgvector |
+| M6 Job postings + embedding | ⬜ Todo | CRUD for can_post_jobs users, Voyage embed |
+| M7 Semantic search | ⬜ Todo | Bidirectional: jobs→CVs and CVs→jobs via pgvector |
 
 ---
 
@@ -436,3 +441,350 @@ Design notes (carried over from the original M3.A):
   `profiles` row via the trigger. `npm run check` green.
 - Add a test to the M3 harness: OAuth callback rejects a bad/missing code
   (assert on the error path).
+
+---
+
+## 9. Next leg: CV upload + Jobs + Semantic Search
+
+Scope of THIS plan: CV upload with PDF parsing, Voyage AI embeddings,
+Supabase pgvector storage, job postings (gated by `can_post_jobs`), and
+bidirectional semantic search (jobs → CVs and CVs → jobs).
+
+### 9.1 Design decisions (locked)
+
+**Roles.** No separate role table. Every user is a Candidate by default.
+A boolean `can_post_jobs` on `profiles` grants job-posting privileges.
+The flag is set directly in Supabase (dashboard or SQL) — no self-serve
+UI, no admin screen. One user can be both candidate (has a CV, appears
+in searches) and employer (posts jobs).
+
+**CV parsing.** Start with PDF only via the `pdf-parse` npm package
+(server-side). DOCX, plain text, and other formats are deferred.
+Server Action receives the uploaded file, extracts text from the PDF
+buffer, stores the raw file in Supabase Storage, and persists metadata
++ embedding in the `cvs` table.
+
+**Embedding.** Voyage AI `voyage-3` model (1024-dim). Called via `fetch`
+against the Voyage REST API (`https://api.voyageai.com/v1/embeddings`).
+No Voyage SDK dependency — the API is a single POST endpoint. Both CV
+text and job descriptions use the same model so similarity queries are
+comparable. `input_type` is `"document"` for both (CVs and job descriptions
+are both long-form text, not queries).
+
+**Vector storage.** Supabase pgvector (enabled via `CREATE EXTENSION` in a
+migration). Cosine distance (`<=>`) for similarity. Search queries run
+server-side with the service-role client (bypasses RLS), return scored
+IDs, then the caller fetches the rows it's authorized to see with its
+own RLS-scoped client. This is the standard pattern: search index is
+privileged, row access is per-user.
+
+**Search directions.** Both:
+- Employer view: given a job ID, find top-N CVs by cosine similarity.
+- Candidate view: given a CV ID, find top-N published jobs by similarity.
+
+**Deploy.** Both local dev (`supabase start`) and Vercel + Supabase Cloud.
+Voyage API key goes in `.env.local` (local) and Vercel env vars (prod).
+pgvector is available on all Supabase Cloud plans.
+
+### 9.2 Definition of done for this plan
+
+- A user can upload a PDF CV → text extracted → embedded via Voyage → stored.
+- A user with `can_post_jobs` can create, edit, and close a job posting.
+- Job descriptions are embedded at create/update time.
+- A job detail page shows top matching candidates (by similarity score).
+- A profile/CV page shows top matching jobs.
+- Public job listing page (paginated, published-only).
+- `npm run check` is green locally; CI passes on push.
+- Works on both local dev and Vercel deploy.
+
+### 9.3 Data model
+
+```sql
+-- Migration 0002: profiles extension
+ALTER TABLE public.profiles
+  ADD COLUMN can_post_jobs boolean NOT NULL DEFAULT false,
+  ADD COLUMN display_name text,
+  ADD COLUMN bio text;
+
+COMMENT ON COLUMN public.profiles.can_post_jobs IS
+  'Grants job-posting privileges. Set manually in Supabase dashboard.';
+COMMENT ON COLUMN public.profiles.display_name IS
+  'User-visible name, defaults to email prefix if not set.';
+COMMENT ON COLUMN public.profiles.bio IS
+  'Short user bio / tagline.';
+
+-- Migration 0003: pgvector + cvs table
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
+CREATE TABLE public.cvs (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  file_path         text NOT NULL,
+  original_filename text NOT NULL,
+  raw_text          text NOT NULL,
+  embedding         extensions.vector(1024),
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.cvs IS
+  'Uploaded CVs. One user can have multiple CV versions.';
+
+ALTER TABLE public.cvs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "cvs: owner CRUD" ON public.cvs
+  FOR ALL USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- Migration 0004: jobs table
+CREATE TABLE public.jobs (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  employer_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title       text NOT NULL,
+  description text NOT NULL,
+  embedding   extensions.vector(1024),
+  status      text NOT NULL DEFAULT 'draft'
+              CHECK (status IN ('draft', 'published', 'closed')),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.jobs IS
+  'Job postings. Only users with can_post_jobs=true can create.';
+
+ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "jobs: owner CRUD" ON public.jobs
+  FOR ALL USING (employer_id = auth.uid())
+  WITH CHECK (employer_id = auth.uid());
+
+CREATE POLICY "jobs: public read published" ON public.jobs
+  FOR SELECT USING (status = 'published');
+```
+
+### 9.4 Milestones
+
+#### M4 — Profiles extension + profile page
+
+Goal: extend the profiles table and give users a profile page where they
+can see (and later edit) their info.
+
+**M4.A — Migration**
+- Migration `0002_extend_profiles.sql`: add `can_post_jobs`, `display_name`,
+  `bio` columns as above.
+- Update seed.sql if needed (no-op for now).
+- **Verify:** `supabase db reset` is clean; the migration applies without error.
+
+**M4.B — Profile page**
+- `app/app/profile/page.tsx`: reads the user's profile row via
+  `createClient()` + `getUser()` → `profiles` join.
+- Shows email, display_name (fallback to email prefix), bio (fallback to
+  placeholder), and can_post_jobs badge.
+- Simple UI: card layout matching the existing design system
+  (Tailwind + brand tokens from globals.css).
+- **Verify:** logged-in user visits `/app/profile` and sees their profile.
+  `npm run check` green.
+
+**M4 exit gate:** profiles table extended, profile page renders. Commit.
+
+---
+
+#### M5 — CV upload + Voyage embedding
+
+Goal: a user uploads a PDF CV, the server extracts text, embeds it via
+Voyage, and stores both the file and the vector.
+
+**M5.A — Enable pgvector + CVs table**
+- Migration `0003_pgvector_cvs.sql`: `CREATE EXTENSION vector` + `cvs` table
+  as in §9.3.
+- Enable `storage.vector` in `supabase/config.toml` (line 64: flip to `true`).
+- **Verify:** `supabase db reset` clean. Extension exists (`SELECT * FROM
+  pg_extension WHERE extname = 'vector'`).
+
+**M5.B — Voyage API wrapper**
+- `lib/voyage.ts`: server-only module.
+  - `embedText(text: string): Promise<number[]>` — calls Voyage API, returns
+    the embedding vector.
+  - Reads `VOYAGE_API_KEY` from `process.env`.
+  - Hard-fails on non-2xx (per convention #3: never swallow an error).
+  - Truncates input to Voyage's token limit (32K tokens for voyage-3).
+    No chunking in the first pass — single PDFs should fit.
+- `.env.example`: add `VOYAGE_API_KEY=` with a comment.
+- **Verify:** a manual test (or unit test with mocked fetch) confirms the
+  wrapper shape. `npm run typecheck` green.
+
+**M5.C — CV upload flow**
+- `app/app/profile/cv/upload/page.tsx` + upload form component.
+- Client-side: file input (accept=".pdf"), shows selected filename and size.
+  Max file size: 10 MB (enforced client-side for UX, server-side for security).
+- Server Action `uploadCV(formData: FormData)`: 
+  1. Validate file exists, is PDF, ≤10 MB.
+  2. Extract text via `pdf-parse` (runs server-side on the Buffer).
+  3. Upload the raw PDF to Supabase Storage bucket `cvs` at path
+     `{userId}/{uuid}.pdf`.
+  4. Call `embedText(rawText)` → embedding vector.
+  5. INSERT into `cvs` table.
+  6. Return `{ error }` or redirect to profile.
+- Storage bucket `cvs`: create in migration or via dashboard. RLS: owner-only
+  read/write.
+- **Verify:** upload a test PDF; confirm row appears in `cvs` table; file
+  exists in Storage. `npm run check` green.
+
+**M5.D — CV display on profile**
+- Profile page shows the user's CV(s): filename, upload date, a "View text"
+  expandable section showing `raw_text`.
+- If no CV uploaded yet, show an upload CTA.
+- **Verify:** profile page shows uploaded CV. `npm run check` green.
+
+**M5 exit gate:** full upload → extract → embed → store pipeline works.
+Commit.
+
+---
+
+#### M6 — Job postings + embedding
+
+Goal: users with `can_post_jobs=true` can create, edit, and manage job
+postings. Job descriptions are embedded for search.
+
+**M6.A — Jobs table**
+- Migration `0004_jobs.sql`: `jobs` table as in §9.3.
+- **Verify:** `supabase db reset` clean.
+
+**M6.B — Create job flow**
+- `app/app/jobs/new/page.tsx` + create-job form.
+- Gated server-side: action checks `can_post_jobs` on the current user's
+  profile; returns error if false.
+- Server Action `createJob(formData)`:
+  1. Validate title (non-empty, ≤200 chars), description (non-empty, ≤50K chars).
+  2. Call `embedText(description)`.
+  3. INSERT into `jobs` with `status = 'draft'`.
+  4. Redirect to job detail page.
+- **Verify:** user with flag creates a job; user without flag gets error.
+  `npm run check` green.
+
+**M6.C — Job listing + detail pages**
+- `app/jobs/page.tsx` (public): lists published jobs, paginated. Each card
+  shows title, employer display_name, posted date. No embedding needed here
+  — just a standard SELECT.
+- `app/jobs/[id]/page.tsx` (public): job detail. Shows title, employer, full
+  description, posted/updated dates. If the viewer is the owner, show edit
+  and status-change controls.
+- **Verify:** published jobs appear on listing; draft jobs do not. Owner sees
+  edit controls. `npm run check` green.
+
+**M6.D — Edit + status management**
+- Edit form at `app/app/jobs/[id]/edit/page.tsx` (gated: owner only).
+- Server Action `updateJob(id, formData)`: updates title, description,
+  re-embeds description if it changed, updates `updated_at`.
+- Server Action `updateJobStatus(id, status)`: changes status (draft →
+  published, published → closed). Owner only.
+- **Verify:** full CRUD cycle works. Re-embedding on description change is
+  correct. `npm run check` green.
+
+**M6 exit gate:** job postings are fully functional. Commit.
+
+---
+
+#### M7 — Semantic search
+
+Goal: given a CV, find matching jobs. Given a job, find matching candidates.
+Server-side similarity queries via pgvector.
+
+**M7.A — Search helper**
+- `lib/search.ts`: server-only module.
+  - `searchJobsForCV(cvId: string, limit?: number): Promise<ScoredJob[]>`:
+    fetches the CV embedding, runs cosine similarity against published jobs,
+    returns scored results. Uses service-role client (bypasses RLS on the
+    vector index, then the caller fetches rows with its own client).
+  - `searchCVsForJob(jobId: string, limit?: number): Promise<ScoredCV[]>`:
+    same approach reversed.
+  - Query pattern (pgvector cosine similarity):
+    ```sql
+    SELECT id, 1 - (embedding <=> $1) AS similarity
+    FROM cvs  -- or jobs
+    WHERE embedding IS NOT NULL
+    ORDER BY embedding <=> $1
+    LIMIT $2;
+    ```
+  - Returns scored IDs only (no raw text, no personal data) — the caller
+    joins with its own RLS-scoped queries.
+
+**M7.B — Search UI on CV/profile page**
+- CV detail / profile page: below the CV info, show "Matching Jobs" section.
+  Calls `searchJobsForCV` server-side, renders a list of job cards (title,
+  employer, similarity score as percentage).
+- If no CV uploaded, show "Upload a CV to see matching jobs" CTA.
+- **Verify:** upload a CV, see matching jobs listed with scores. `npm run
+  check` green.
+
+**M7.C — Search UI on job detail page**
+- Job detail page (for the owner): below the description, show "Matching
+  Candidates" section. Calls `searchCVsForJob` server-side.
+- Shows similarity scores. Does NOT show candidate emails or raw CV text —
+  only a de-identified card (display_name or "Candidate #{n}", similarity%).
+- **Verify:** job owner sees matching candidates. Non-owner does not see this
+  section. `npm run check` green.
+
+**M7 exit gate:** bidirectional search works end-to-end. Commit.
+
+---
+
+### 9.5 Env vars needed
+
+| Variable | Where | Notes |
+|----------|-------|-------|
+| `VOYAGE_API_KEY` | `.env.local` + Vercel | Voyage AI API key |
+
+Update `.env.example` with `VOYAGE_API_KEY=` placeholder.
+
+### 9.6 New dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `pdf-parse` | Extract text from PDF buffers (server-side) |
+
+### 9.7 New files (target)
+
+```
+lib/
+  voyage.ts             # embedText() — Voyage AI REST API wrapper
+  search.ts             # searchJobsForCV(), searchCVsForJob() — pgvector queries
+  supabase/
+    service.ts          # createServiceClient() — service-role client for search
+app/
+  jobs/
+    page.tsx            # public job listing (published only)
+    [id]/
+      page.tsx          # public job detail + matching candidates (owner only)
+  app/
+    profile/
+      page.tsx          # profile page (extended from current placeholder)
+      cv/
+        upload/
+          page.tsx      # CV upload form
+          actions.ts    # uploadCV server action
+    jobs/
+      new/
+        page.tsx        # create job form
+        actions.ts      # createJob server action
+      [id]/
+        edit/
+          page.tsx      # edit job form
+          actions.ts    # updateJob, updateJobStatus server actions
+supabase/
+  migrations/
+    0002_extend_profiles.sql
+    0003_pgvector_cvs.sql
+    0004_jobs.sql
+```
+
+### 9.8 Order of operations
+
+M4 → M5 → M6 → M7. Each milestone depends on the previous one:
+- M6 (jobs) needs M4 (can_post_jobs flag) for gating.
+- M7 (search) needs both M5 (CV embeddings) and M6 (job embeddings) to
+  have vectors to search against.
+
+Within each milestone, phases run sequentially (A → B → C → D). Follow the
+existing discipline: one phase ≈ one commit, `npm run check` green before
+moving on.
