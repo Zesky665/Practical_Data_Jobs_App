@@ -27,3 +27,6 @@ CREATE POLICY "jobs: owner CRUD" ON public.jobs
 -- Anyone can read published jobs.
 CREATE POLICY "jobs: public read published" ON public.jobs
   FOR SELECT USING (status = 'published');
+
+-- Grant table access to Supabase roles (not automatic in local dev).
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.jobs TO authenticated, service_role, anon;
