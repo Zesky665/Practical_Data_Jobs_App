@@ -57,8 +57,9 @@ export async function uploadCV(
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const pdf2json = await import("pdf2json");
+    const PDFParser = pdf2json.default;
     rawText = await new Promise<string>((resolve, reject) => {
-      const parser = new pdf2json.PDFParser();
+      const parser = new PDFParser();
       parser.on("pdfParser_dataReady", (pdfData: {
         Pages?: { Texts?: { R: { T: string }[] }[] }[];
       }) => {
