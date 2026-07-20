@@ -7,6 +7,10 @@ import { redirect } from "next/navigation";
 
 export type CreateJobState = {
   error?: string;
+  fieldErrors?: {
+    title?: string;
+    description?: string;
+  };
 };
 
 /**
@@ -26,11 +30,19 @@ export async function createJob(
   }
 
   // Gate: check can_post_jobs
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("can_post_jobs")
     .eq("id", user.id)
     .single();
+
+  if (profileError) {
+    console.error("[createJob] Profile lookup failed:", profileError);
+    return {
+      error:
+        "Could not verify your account. Please try again or contact support.",
+    };
+  }
 
   if (!profile?.can_post_jobs) {
     return {
@@ -40,20 +52,26 @@ export async function createJob(
   }
 
   // Validate fields
-  const title = (formData.get("title") as string)?.trim();
-  const description = (formData.get("description") as string)?.trim();
+  const title = (formData.get("title") as string)?.trim() ?? "";
+  const description = (formData.get("description") as string)?.trim() ?? "";
 
-  if (!title || title.length > 200) {
-    return {
-      error: "Please provide a job title (maximum 200 characters).",
-    };
+  const fieldErrors: CreateJobState["fieldErrors"] = {};
+
+  if (!title) {
+    fieldErrors.title = "Job title is required.";
+  } else if (title.length > 200) {
+    fieldErrors.title = "Job title must be at most 200 characters.";
   }
 
-  if (!description || description.length > 50000) {
-    return {
-      error:
-        "Please provide a job description (maximum 50,000 characters).",
-    };
+  if (!description) {
+    fieldErrors.description = "Job description is required.";
+  } else if (description.length > 50000) {
+    fieldErrors.description =
+      "Job description must be at most 50,000 characters.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
   }
 
   // Embed description
@@ -70,6 +88,7 @@ export async function createJob(
   }
 
   // Insert
+  const now = new Date().toISOString();
   const { data: job, error: insertError } = await supabase
     .from("jobs")
     .insert({
@@ -78,6 +97,8 @@ export async function createJob(
       description,
       embedding: embedding as unknown as string,
       status: "draft",
+      created_at: now,
+      updated_at: now,
     })
     .select("id")
     .single();
@@ -88,5 +109,5 @@ export async function createJob(
   }
 
   revalidatePath("/app/jobs");
-  redirect(`/jobs/${job.id}`);
+  redirect(`/jobs/${job.id}?created=1`);
 }

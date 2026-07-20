@@ -7,6 +7,10 @@ import { redirect } from "next/navigation";
 
 export type UpdateJobState = {
   error?: string;
+  fieldErrors?: {
+    title?: string;
+    description?: string;
+  };
 };
 
 /**
@@ -25,17 +29,27 @@ export async function updateJob(
   }
 
   const id = formData.get("job_id") as string;
-  const title = (formData.get("title") as string)?.trim();
-  const description = (formData.get("description") as string)?.trim();
+  const title = (formData.get("title") as string)?.trim() ?? "";
+  const description = (formData.get("description") as string)?.trim() ?? "";
 
-  if (!title || title.length > 200) {
-    return { error: "Please provide a job title (maximum 200 characters)." };
+  // Field-level validation
+  const fieldErrors: UpdateJobState["fieldErrors"] = {};
+
+  if (!title) {
+    fieldErrors.title = "Job title is required.";
+  } else if (title.length > 200) {
+    fieldErrors.title = "Job title must be at most 200 characters.";
   }
 
-  if (!description || description.length > 50000) {
-    return {
-      error: "Please provide a job description (maximum 50,000 characters).",
-    };
+  if (!description) {
+    fieldErrors.description = "Job description is required.";
+  } else if (description.length > 50000) {
+    fieldErrors.description =
+      "Job description must be at most 50,000 characters.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
   }
 
   // Fetch existing job to check ownership and detect description changes
@@ -89,7 +103,7 @@ export async function updateJob(
 
   revalidatePath(`/jobs/${id}`);
   revalidatePath(`/app/jobs/${id}/edit`);
-  redirect(`/jobs/${id}`);
+  redirect(`/jobs/${id}?updated=1`);
 }
 
 /**

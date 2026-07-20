@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
 import { embedText } from "@/lib/voyage";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
