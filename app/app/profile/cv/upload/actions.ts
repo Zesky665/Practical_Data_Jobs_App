@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
 import { embedText } from "@/lib/voyage";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -95,8 +94,7 @@ export async function uploadCV(
   const storagePath = `${user.id}/${cvId}.pdf`;
 
   try {
-    const serviceClient = createServiceClient();
-    const { error: uploadError } = await serviceClient.storage
+    const { error: uploadError } = await supabase.storage
       .from("cvs")
       .upload(storagePath, pdfBuffer, {
         contentType: "application/pdf",
@@ -130,10 +128,9 @@ export async function uploadCV(
     };
   }
 
-  // 5. Insert into cvs table (service role — bypasses RLS since the user
-  //    identity is already verified via getUser() above)
-  const serviceClient = createServiceClient();
-  const { error: insertError } = await serviceClient.from("cvs").insert({
+  // 5. Insert into cvs table using the user's own client (RLS ensures
+  //    they can only insert with their own user_id)
+  const { error: insertError } = await supabase.from("cvs").insert({
     id: cvId,
     user_id: user.id,
     file_path: storagePath,
